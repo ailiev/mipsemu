@@ -1,0 +1,7 @@
+<date>Mon Mar  6 13:29:06 2006</date>
+
+How to get a list of all instructions used in an objdump disassembly:
+> mipsel-linux-objdump -d simple | pcregrep '^\s+(\d|[a-f])+:' | awk '{print $3}' | sort | uniq | less
+
+register usage: both rt and rd are used as result registers in instruction
+formats, depending on whether rt is used for an operand too.

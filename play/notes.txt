@@ -1,0 +1,28 @@
+<date>Fri Mar  3 12:41:03 2006</date>
+
+Trying to figure out whether the dietlibc implementation of malloc is good
+(simpple?) enough for us.
+It calls syscalls:
+- mmap (with MAP_ANONYMOUS, and no file-related stuff)
+
+so, I need to implement an mmap syscall which finds and returns a (largish)
+pointer to heap memory.
+
+
+mystery: where does the call to __small_malloc from _alloc_libc_malloc (in
+alloc.c) end up in the binary? In the objdump disassembly, __small_malloc is not
+listed for some reason, but it is right after error_unified_syscall (perhaps
+this is because it's a file-local/static function)
+
+
+<date>Fri Mar  3 14:03:54 2006</date>
+
+Initialization of $sp in __start:
+- it appears to start out with some value, it's not fully initialized in
+  __start.
+- mask out some bits with mask -8, which is bit pattern 0xFFFFFFF8, ie. bits 0-2
+are masked out.
+- subtract 24 from it
+- ie: $sp should be initialized before the program runs.
+
+

@@ -1,0 +1,18 @@
+__start uses $t9 to call main, and then call _exit:
+lui	t9,0x40
+addiu	t9,t9,<small offset>
+jalr	t9
+
+
+the data area:
+the compiler has set it up, in the elf file,  with the values of globals. Starts
+around 0x10000000, but specified in the elf file.
+
+We know the .data size from the elf file, so right above it can begin the heap.
+
+seciotn .bss contains the unitialized global variables (errno and environ in
+this case). The length of .bss recorded in the ELF is way too long - 544 bytes,
+whereas only 8 bytes worth of symbols point in there. may need to run the
+program to find out if it does poke deeper into bss for something (too hard to
+try to decode all its memory accesses by hand)
+

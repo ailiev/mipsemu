@@ -1,0 +1,35 @@
+CC=gcc
+
+dietdir=$(HOME)/work/src/crossgcc/dietlibc
+
+diet = $(dietdir)/bin-i386/diet
+#diet = diet
+arch=mipsel
+cross=$(arch)-linux-
+
+CC:=$(diet) $(cross)$(CC)
+LD:=$(cross)$(LD)
+
+# cflags from the dietlibc MIPS makefile
+# note especially the -fno-pic, which is how dietlibc on MIPS is compiled.
+CFLAGS += -Os -G 0 -fstrict-aliasing -fno-pic -mno-abicalls
+
+CFLAGS += -O2
+CPPFLAGS += -I$(dietdir)/include
+LDFLAGS += -static
+
+VPATH = $(dietdir)/bin-$(ARCH)
+
+# LIBOBJS = malloc.o 
+
+all: simple
+
+%.s: %.c
+	$(CC) -S $(CPPFLAGS) $(CFLAGS) $<
+
+simple: simple.o $(LIBOBJS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LOADLIBES) $(LDLIBS)
+
+
+clean:
+	$(RM) *.o simple
