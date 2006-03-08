@@ -26,3 +26,21 @@ are masked out.
 - ie: $sp should be initialized before the program runs.
 
 
+<date>Tue Mar  7 14:43:20 2006</date>
+
+Just noticed that the mipsel-linux disassembler (via objdump) shows an addu with
+one operand $zero as a move! move is a pseudoinstruction! Confucious!!
+
+
+<date>Wed Mar  8 11:44:29 2006</date>
+
+Memory access instructions have the address as the *rs* register + the immediate
+offset.
+
+
+<date>Wed Mar  8 12:09:13 2006</date>
+
+The order of operands is significant for many instructions, like shifts, and has
+no obvious first priciples behind it. Thus, need to pay attention when writing
+the evaluation code, and document how my .in1 and .in2 fields are used for each
+case.

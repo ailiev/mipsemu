@@ -1,13 +1,25 @@
 // -*- c++ -*-
 
+#include "common.h"
+
 #include <pir/common/utils-types.h>
 
-#include "common.h"
+#include <stdint.h>
+
+#include <iostream>
+
+
+#ifndef _INSTRUCTIONS_H
+#define _INSTRUCTIONS_H
+
 
 MIPS_OPEN_NS
 
+// FIXME: check if we need a mul instruction
+
 enum mips_instr_name
 {
+    illegal_instruction = 0,
     add,
     addi,
     addiu,
@@ -42,8 +54,11 @@ enum mips_instr_name
     lwr,
     mfc0,			// move from the exception coprocessor
 //    mfcz,
+    mfhi,
     mflo,
 //    mtcz,
+    movn,
+    movz,
     mthi,
     mtlo,
     mult,
@@ -78,12 +93,92 @@ enum mips_instr_name
 };
 
 
-struct instruction_t {
-    mips_instr_name name;
-    byte rs, rt, rd;		// up to three register numbers
+struct mips_instr_info {
+
+    mips_instr_name name;	// as a double-check
     
-    uint32_t immed;
+    enum
+    {
+	arith,
+	load,
+	store,
+	immediate,
+	branch,
+	jump,
+	trap,
+	move,
+	misc
+    } instr_type;
+
+    enum
+    {
+	none,
+	end16,
+	end26,
+	shift,
+	breakcode
+    } immed_type;
+
+    byte num_ops;		// 0-2
+
+    bool has_out;		// does the instruction write a result to $rd?
+
+    bool should_link;
+
+
 };
 
+
+
+extern mips_instr_info g_instr_info[];
+
+/// initialize the global instruction info map. Must be called before using the
+/// CPU.
+void init_instr_info ();
+
+
+// the most common breakdown of instruction binary format
+//
+// WARNING: this is only for where the uint32_t (or such) representation of the
+// instruction is in little-endian byte order, and it's directly copied into an
+// instr_fields instance with memcpy. Hence the fields appear to be in reverse.
+struct instr_fields
+{
+    byte funct	: 6;
+    byte shamt	: 5;		// this field is only used as part of a 16-bit
+				// immediate, or in shift instructions
+    byte rd	: 5;
+    byte rt	: 5;
+    byte rs	: 5;
+    byte opcode	: 6;
+}  __attribute__((__packed__));
+
+// and where a 16-bit immediate is involved:
+struct instr_imm_fields 
+{
+    uint16_t imm    : 16;
+    byte rt	: 5;
+    byte rs	: 5;
+    byte opcode : 6;
+} __attribute__((__packed__));
+
+
+
+
+struct instruction_t {
+    mips_instr_name name;
+    byte in1, in2, dest;	// up to three register numbers
+
+    uint32_t operands[2];	// up to two operand *values*
     
+    uint32_t immed;		// an immediate value
+
+};
+
+std::ostream& operator<< (std::ostream& os, mips_instr_name name);
+
+
 CLOSE_NS
+
+
+#endif // _INSTRUCTIONS_H

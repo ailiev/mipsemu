@@ -1,68 +1,127 @@
 #include "instructions.h"
 
+#include <pir/common/utils-macros.h>
+
 MIPS_OPEN_NS
 
+struct mips_instr_str_name
+{
+    mips_instr_name op;
+    const char * opname;
+};
 
-struct mips_instr_info {
-
-    enum
-    {
-	arith,
-	load,
-	store,
-	immediate,
-	branch,
-	jump,
-	trap,
-	move,
-	misc
-    } instr_type;
-
-    enum
-    {
-	none,
-	end16,
-	end26,
-	shift,
-	breakcode
-    } immed_type;
-
-    unsigned char num_ops;
-
-    bool should_link;
-
+static const mips_instr_str_name g_op_names[] =  
+{
+    { illegal_instruction, "illegal_instruction" }, 
+    { add, "add" },
+    { addi, "addi" },
+    { addiu, "addiu" },
+    { addu, "addu" },
+    { i_and, "i_and" },
+    { andi, "andi" },
+//    { bczt, "bczt" },
+    { beq, "beq" },
+    { bgez, "bgez" },
+    { bgezal, "bgezal" },
+    { bgtz, "bgtz" },
+    { blez, "blez" },
+    { bltz, "bltz" },
+    { bltzal, "bltzal" },
+    { bne, "bne" },
+    { i_break, "i_break" },
+//    { bzcf, "bzcf" },
+    { div, "div" },
+    { divu, "divu" },
+    { j, "j" },
+    { jal, "jal" },
+    { jalr, "jalr" },
+    { jr, "jr" },
+    { lb, "lb" },
+    { lbu, "lbu" },
+    { lh, "lh" },
+    { lhu, "lhu" },
+    { lui, "lui" },
+    { lw, "lw" },
+//    { lwcz, "lwcz" },
+    { lwl, "lwl" },
+    { lwr, "lwr" },
+    { mfc0, "mfc0" },			// move from the exception coprocessor
+//    { mfcz, "mfcz" },
+    { mfhi, "mfhi" },
+    { mflo, "mflo" },
+//    { mtcz, "mtcz" },
+    { movn, "movn" },
+    { movz, "movz" },
+    { mthi, "mthi" },
+    { mtlo, "mtlo" },
+    { mult, "mult" },
+    { multu, "multu" },
+    { nop, "nop" },
+    { nor, "nor" },
+    { i_or, "i_or" },
+    { ori, "ori" },
+//    { rfe, "rfe" },
+    { sb, "sb" },
+    { sh, "sh" },
+    { sll, "sll" },
+    { sllv, "sllv" },
+    { slt, "slt" },
+    { slti, "slti" },
+    { sltiu, "sltiu" },
+    { sltu, "sltu" },
+    { sra, "sra" },
+    { srav, "srav" },
+    { srl, "srl" },
+    { srlv, "srlv" },
+    { sub, "sub" },
+    { subu, "subu" },
+    { sw, "sw" },
+//    { swcz, "swcz" },
+    { swl, "swl" },
+    { swr, "swr" },
+    { syscall, "syscall" },
+    { i_xor, "i_xor" },
+    { xori, "xori" }
 };
 
 
-
-mips_instr_info instr_info [NUM_INSTRS];
-
-
-void init_mips_instr_info ()
+std::ostream& operator<< (std::ostream& os, mips_instr_name name)
 {
-#define MKINFO(v1, v2, v3, v4) { mips_instr_info::v1,	\
-			         mips_instr_info::v2,	\
-			         mips_instr_info::v3,	\
-                                 mips_instr_info::v4 }
+    assert (g_op_names[name].op == name);
+    return os << g_op_names[name].opname;
+}
 
-    mips_instr_info default_info = MKINFO (arith, none, two, false);
+
+
+
+mips_instr_info g_instr_info [NUM_INSTRS];
+
+
+void init_instr_info ()
+{
+#define MKINFO(name, v1,v2,v3,v4,v5) { name,			\
+                                       mips_instr_info::v1,	\
+			               mips_instr_info::v2,	\
+			               v3,			\
+				       v4,			\
+                                       v5}
 
 #define SETINFO_SMALL(instr, info) instr_info[instr] = info
     
-// set up the link flag separately
-#define SETINFO(instr, v1, v2, v3, false)		\
-    {							\
-        mips_instr_info __kuku = MKINFO (v1,v2,v3);	\
-        instr_info[instr] = __kuku;			\
+// set up the link flags separately afterwards
+#define SETINFO(instr, v1, v2, v3)				\
+    {								\
+        mips_instr_info __kuku = MKINFO (instr, v1,v2,v3,false,false);	\
+        g_instr_info[instr] = __kuku;				\
     }
 
 	
     SETINFO (add,	arith,	    none,   2);
-    SETINFO (addi,	arith,	    end16,  2);
-    SETINFO (addiu,	arith,	    end16,  2);
+    SETINFO (addi,	arith,	    end16,  1);
+    SETINFO (addiu,	arith,	    end16,  1);
     SETINFO (addu,	arith,	    none,   2);
     SETINFO (i_and,	arith,	    none,   2);
-    SETINFO (andi,	arith,	    end16,  2);
+    SETINFO (andi,	arith,	    end16,  1);
     SETINFO (beq,	branch,	    end16,  2);
     SETINFO (bgez,	branch,	    end16,  1);
     SETINFO (bgezal,	branch,	    end16,  1);
@@ -72,13 +131,13 @@ void init_mips_instr_info ()
     SETINFO (bltzal,	branch,	    end16,  1);
     SETINFO (bne,	branch,	    end16,  2);
     SETINFO (i_break,	trap,	    breakcode, 0);
-    SETINFO (div,	arithm,	    none,   2);
+    SETINFO (div,	arith,	    none,   2);
     SETINFO (divu,	arith,	    none,   2);
     SETINFO (j,		jump,	    end26,  0);
     SETINFO (jal,	jump,	    end26,  0);
     SETINFO (jalr,	jump,	    none,   1);
     SETINFO (jr,	jump,	    none,   1);
-    SETINFO (lb,	mem,	    end16,  1);
+    SETINFO (lb,	load,	    end16,  1);
     SETINFO (lbu,	load,	    end16,  1);
     SETINFO (lh,	load,	    end16,  1);
     SETINFO (lhu,	load,	    end16,  1);
@@ -88,6 +147,11 @@ void init_mips_instr_info ()
     SETINFO (lwr,	load,	    end16,  1);
     SETINFO (mfc0,	move,	    none,   0);
     SETINFO (mflo,	move,	    none,   0);
+    SETINFO (mfhi,	move,	    none,   0);
+
+    SETINFO (movn,	move,	    none,   2);
+    SETINFO (movz,	move,	    none,   2);
+
     SETINFO (mthi,	move,	    none,   0);
     SETINFO (mtlo,	move,	    none,   0);
     SETINFO (mult,	arith,	    none,   2);
@@ -95,7 +159,7 @@ void init_mips_instr_info ()
     SETINFO (nop,	misc,	    none,   0);
     SETINFO (nor,	arith,	    none,   2);
     SETINFO (i_or,	arith,	    none,   2);
-    SETINFO (ori,	arith,	    end16,  2);
+    SETINFO (ori,	arith,	    end16,  1);
 //    SETINFO (rfe,	jump,	    none,   0);
     SETINFO (sb,	store,	    end16,  2);
     SETINFO (sh,	store,	    end16,  2);
@@ -114,15 +178,48 @@ void init_mips_instr_info ()
     SETINFO (sw, 	store,	    end16,  2);
     SETINFO (swl, 	store,	    end16,  2);
     SETINFO (swr, 	store,	    end16,  2);
-    SETINFO (syscall,	misc,	    none,   1);
+    SETINFO (syscall,	misc,	    none,   0);
     SETINFO (i_xor,	arith,	    none,   2);
     SETINFO (xori,	arith,	    end16,  1);
 
     // set up which instructions link a return address in $ra
-    mips_instr linking_instrs[] = { bgezal, jal, jalr };
+    mips_instr_name linking_instrs[] = { bgezal, jal, jalr };
     for (unsigned i=0; i < ARRLEN(linking_instrs); i++)
     {
-	linking_instrs[i].should_link = true;
+	g_instr_info[ linking_instrs[i] ].should_link = true;
+    }
+
+    for (unsigned i=0; i < ARRLEN(g_instr_info); i++)
+    {
+	mips_instr_info * info = &g_instr_info[i];
+	
+	assert (info->name == i);
+	
+	switch (info->instr_type) {
+	case mips_instr_info::arith:
+	case mips_instr_info::load:
+	case mips_instr_info::immediate:
+	    info->has_out = true;
+	default:
+	    break;
+	};
+
+	// negative exceptions
+	switch (info->name)
+	{
+#define d(v) case v: info->has_out = false
+	    // these write results only to hi-lo regs
+	    d(mult);
+	    d(div);
+	    d(divu);
+	    d(multu);
+#undef d
+	default:
+	    break;
+	}
+
+	// positive exceptions
+	
     }
 
 };
