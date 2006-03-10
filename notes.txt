@@ -9,3 +9,9 @@ mipsel-linux-objdump -d simple | pcregrep '^\s+(\d|[a-f])+:' | awk '{print $2}'
 
 register usage: both rt and rd are used as result registers in instruction
 formats, depending on whether rt is used for an operand too.
+
+
+<date>Thu Mar  9 15:01:51 2006</date>
+
+We're ignoring overflow exceptions for now, just doing signed and unsigned
+arithmetic instructions identically.

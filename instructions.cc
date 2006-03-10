@@ -99,12 +99,15 @@ mips_instr_info g_instr_info [NUM_INSTRS];
 
 void init_instr_info ()
 {
-#define MKINFO(name, v1,v2,v3,v4,v5) { name,			\
-                                       mips_instr_info::v1,	\
-			               mips_instr_info::v2,	\
-			               v3,			\
-				       v4,			\
-                                       v5}
+#define MKINFO(name, v1,v2,v3) {		\
+    name,					\
+	mips_instr_info::v1,			\
+	mips_instr_info::v2,			\
+	v3,					\
+	false,					\
+	false,					\
+	false					\
+	}
 
 #define SETINFO_SMALL(instr, info) instr_info[instr] = info
     
@@ -219,6 +222,28 @@ void init_instr_info ()
 	}
 
 	// positive exceptions
+
+
+	// mark signed arithmetic operations
+	// NOTE: these operations require the use of 2s-complement arithmetic,
+	// eg. addiu can have a negative immediate.
+	// The question of whether or not to trap on overflow is separate
+	// (though largely overlapping), and
+	// ignored here
+	mips_instr_name signed_instrs[] =
+	    {
+		add, addi, addiu,
+		sub,
+		div, mult,
+		slt, slti,
+		sra, srav,
+		lb		// vs. lbu
+	    };
+	for (unsigned i=0; i < ARRLEN(signed_instrs); i++)
+	{
+	    g_instr_info[ signed_instrs[i] ].is_signed = true;
+	}
+	
 	
     }
 

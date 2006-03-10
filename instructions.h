@@ -125,7 +125,7 @@ struct mips_instr_info {
 
     bool should_link;
 
-
+    bool is_signed;		// should we do signed arithmetic?
 };
 
 
@@ -167,12 +167,15 @@ struct instr_imm_fields
 
 struct instruction_t {
     mips_instr_name name;
-    byte in1, in2, dest;	// up to three register numbers
 
-    uint32_t operands[2];	// up to two operand *values*
+    byte inregs[2];		// up to two operand register numbers
+    byte destreg;		// destination register number
+
+    uint32_t operands[3];	// up to three operand *values*. beq and bne
+				// have three operands: two vals to compare, and
+				// a target address.
     
-    uint32_t immed;		// an immediate value
-
+//    uint32_t immed;		// an immediate value
 };
 
 std::ostream& operator<< (std::ostream& os, mips_instr_name name);
