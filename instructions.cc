@@ -267,4 +267,44 @@ void init_instr_info ()
 };
 
 
+std::ostream& operator<< (std::ostream& os, const instruction_t & instr)
+{
+    mips_instr_info * info = g_instr_info + instr.name;
+
+    std::ios::fmtflags saved_flags = os.flags();
+	
+    os << instr.name;
+    if (info->has_out) {
+	os << " " << register_name (instr.destreg);
+    }
+    if (info->num_ops > 0) {
+	os << ", " << register_name (instr.inregs[0]);
+    }
+    if (info->num_ops > 1) {
+	os << ", " << register_name (instr.inregs[1]);
+    }
+
+    if (info->immed_type != mips_instr_info::none)
+    {
+	// print the immediate.
+	uint32_t immed = instr.operands[info->num_ops];
+	os << ", ";
+	if (instr.name == jal) {
+	    os << std::hex;
+	}
+
+	// HACK: to decide if it should be signed - if it's bigger than 2^31
+	if (immed >= (1U << 31)) {
+	    os << static_cast<int32_t>(immed);
+	}
+	else {
+	    os << immed;
+	}
+    }
+
+    os.setf(saved_flags);
+
+    return os;
+}
+
 CLOSE_NS

@@ -16,6 +16,8 @@ status_t exec_arith (instruction_t * instr)
     status_t rc = STATUS_OK;
     
     switch (instr->name) {
+	// FIXME: not quite sure how I should handle signed arithmetic here,
+	// need to think more about it.
 #define act(op) instr->operands[0] op instr->operands[1]
 #define signed_act(op)					\
 	static_cast<int32_t> (instr->operands[0]) op	\
@@ -32,8 +34,8 @@ status_t exec_arith (instruction_t * instr)
 	ds1 (sub,	    -);	    break;
 	d1  (subu,	    -);	    break;
 
-	d2 (i_and, andi,    &&);    break;
-	d2 (i_or, ori,	    ||);    break;
+	d2 (i_and, andi,    &);    break;
+	d2 (i_or, ori,	    |);    break;
 
 	d2 (sll, sllv,	    <<);    break;
 

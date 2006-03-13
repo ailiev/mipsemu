@@ -2,14 +2,16 @@
 
 #include "common.h"
 
+#include <signal.h>
+
 #ifndef _MIPS_STATUS_H
 #define _MIPS_STATUS_H
 
 MIPS_OPEN_NS
 
-#define ERREXIT(status) { rc = STATUS_ ## status; goto error_egress; }
+#define ERREXIT(status) { rc = STATUS_ ## status; raise(SIGTRAP); goto error_egress; }
 
-#define CHECKCALL(f) { rc = f; if (rc != STATUS_OK) goto error_egress; }
+#define CHECKCALL(f) { rc = f; if (rc != STATUS_OK) { raise(SIGTRAP); goto error_egress; } }
 
 
 enum status_t {

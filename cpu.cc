@@ -87,7 +87,9 @@ status_t run_process (mem_t * mem,
 	CHECKCALL (decode_instruction (instr_code,
 				       &instr));
 	LOG (Log::DEBUG, s_logger,
-	     "instruction name = " << instr.name);
+	     "instruction code = 0x"
+	     << std::hex << std::setw(8) << std::setfill('0') << instr_code
+	     << "; decoded = " << instr);
 
 	CHECKCALL (execute_instruction (&instr));
     }
@@ -172,11 +174,10 @@ status_t execute_instruction (instruction_t * instr)
 
     
 
-    // jumps and branches always update the pc, even for a not-taken branch.
+    // branches always update the pc, even for a not-taken branch.
     // Also, need to check if a delayed branch should now be taken.
     
-    if (info->instr_type != mips_instr_info::branch &&
-	info->instr_type != mips_instr_info::jump)
+    if (info->instr_type != mips_instr_info::branch)
     {
 	uint32_t branch_target = read_register (br_target);
 	if (branch_target > 0) {
@@ -230,9 +231,8 @@ status_t exec_branch (instruction_t * instr)
 	
 	uint32_t target =
 	    read_register (pc)
-	    + static_cast<int32_t> (instr->operands[num_ops] << 2);
-	// the offset is always signed (so we get sign-extension through the
-	// cast), and is in words, not bytes
+	    + SIGNEXTEND (instr->operands[num_ops] << 2, 18, 32);
+	// the offset is always signed, and is in words, not bytes
 
 	write_register (br_target, target);
     }
@@ -252,17 +252,35 @@ status_t exec_branch (instruction_t * instr)
 
 status_t exec_jump (instruction_t * instr)
 {
+    mips_instr_info * info = g_instr_info + instr->name;
+    
     // the target address is in words, so multiply by 4 to get byte address
     // the high 4 bits come from the PC
     addr_t pc_val = read_register(pc);
     
-    // should be 26 bits
-    assert (instr->operands[0] <= 0x03FFFFFFU);
-    
-    uint32_t target =
-	(pc_val & 0xF0000000U) | 
-	(instr->operands[0] << 2);
+    uint32_t target;
 
+    if (info->immed_type == mips_instr_info::end26)
+    {
+	// an immediate value is more complicated: has to be multiplied by 4
+	// (word to byte address) and combined with the PC
+
+	// should be 26 bits
+	assert (instr->operands[0] <= 0x03FFFFFFU);
+    
+	target =
+	    (pc_val & 0xF0000000U) | 
+	    (instr->operands[0] << 2);
+    }
+    else if (info->immed_type == mips_instr_info::none)
+    {
+	// just the value gotten from the input register
+	target = instr->operands[0];
+    }
+    else {
+	// ERROR!
+    }
+    
     write_register (br_target, target);
 
     if (g_instr_info[instr->name].should_link) {
@@ -279,7 +297,7 @@ status_t exec_load (instruction_t * instr)
     
     word_t address =
 	instr->operands[0] +
-	static_cast<int32_t> (instr->operands[1]);
+	SIGNEXTEND_16TO32 (instr->operands[1]);
 
     uint32_t val;
 
@@ -297,7 +315,7 @@ status_t exec_store (instruction_t * instr)
     
     word_t address =
 	instr->operands[0] +	// the rs register
-	static_cast<int32_t> (instr->operands[2]); // the 16-bit immediate,
+	SIGNEXTEND_16TO32 (instr->operands[2]); // the 16-bit immediate,
 						   // signed
 
     // operands[1] has the rt register value
@@ -313,7 +331,7 @@ status_t exec_move (instruction_t * instr)
 {
     status_t rc = STATUS_OK;
     
-    byte src, dest;		// register numbers
+    register_id src, dest;		// register numbers
     bool should_move = true;
     
     switch (instr->name) {
@@ -397,8 +415,8 @@ void prepare_inputs (uint32_t instr, instruction_t * o_instr)
 	o_instr->operands[opidx] =
 	    info->instr_type == mips_instr_info::arith &&
 	    info->is_signed ?
-	    static_cast<int32_t>  (GETBITS(instr,0,15)) :
-	    static_cast<uint32_t> (GETBITS(instr,0,15));
+	    SIGNEXTEND_16TO32 (GETBITS(instr,0,15)) :
+	    (GETBITS(instr,0,15));
 	break;
 
     case mips_instr_info::end26:
@@ -431,11 +449,11 @@ void prepare_inputs (uint32_t instr, instruction_t * o_instr)
 void get_register_nums (uint32_t instr, instruction_t * o_instr)
 {
     mips_instr_info * info = g_instr_info + o_instr->name;
-    instr_fields fields;
+    type_R_syntax fields;
 
     assert (info->name == o_instr->name);
 
-    // set up a instr_fields to access the bit-fields inside 'instr' easily.
+    // set up a type_R_syntax to access the bit-fields inside 'instr' easily.
     assert (sizeof(fields) == sizeof(instr));
     memcpy (&fields, &instr, sizeof(instr));
 
@@ -606,7 +624,7 @@ mips_instr_name decode_1_opcode (uint32_t instr)
 CLOSE_NS			// anonymous namespace
 
 
-const char* register_name (unsigned reg_num)
+const char* register_name (register_id reg_num)
 {
     struct reg_info_t {
 	register_id id;
@@ -647,27 +665,32 @@ const char* register_name (unsigned reg_num)
 	{ fp, "fp" },
 	{ ra, "ra" },
 
-	{ pc, "pc" }
+	{ pc, "pc" },
+	{ br_target, "br_target" },
+	{ lo, "lo" },			
+	{ hi, "hi" }
     };
 
 
-    assert (reg_num < NUMREGS);
+    // static checks, should incorporate into build process somehow, not into
+    // every call
+    assert (ARRLEN(reg_infos) == NUMREGS);
     assert (reg_infos[reg_num].id == reg_num);
     
     return reg_infos[reg_num].name;
 }
 
 
-uint32_t read_register (byte regnum)
+uint32_t read_register (register_id regid)
 {
-    assert (regnum < ARRLEN(s_regs));
-    return s_regs[regnum];
+//    assert (regid < ARRLEN(s_regs));
+    return s_regs[regid];
 }
 
-void write_register (byte regnum, uint32_t val)
+void write_register (register_id regid, uint32_t val)
 {
-    assert (regnum < ARRLEN(s_regs));
-    s_regs[regnum] = val;
+//    assert (regnum < ARRLEN(s_regs));
+    s_regs[regid] = val;
 }
 
 

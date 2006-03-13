@@ -18,7 +18,7 @@ int main (int argc, char** argv) {
     
     int z = add5(x);
     
-    char * text = (char*) malloc (20);
+//    char * text = (char*) malloc (20);
 
-    return argc + x + z + (unsigned)text;
+    return x + z;
 }

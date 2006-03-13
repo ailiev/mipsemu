@@ -5,7 +5,8 @@
 #include "common.h"
 #include "status.h"
 
-#include <dietlibc/syscalls.h>
+// this is a MIPS OS!
+#include <dietlibc/mips/syscalls.h>
 
 #include <iostream>
 
@@ -13,6 +14,8 @@ MIPS_OPEN_NS
 
 status_t exec_syscall ()
 {
+//    const uint32_t syscall_num_exit = __NR_exit;
+
     status_t rc = STATUS_OK;
     
     uint32_t callnum = read_register (v0);
@@ -22,7 +25,7 @@ status_t exec_syscall ()
     {
 	// read out the exit code
 	uint32_t exitcode = read_register (a0);
-	std::cout << "Process exited with code " << exitcode << std::endl;
+	std::cout << "MIPS Process exited with code " << exitcode << std::endl;
 	// and we exit ourselves...
 	exit (EXIT_SUCCESS);
 	break;

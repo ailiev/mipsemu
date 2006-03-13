@@ -1,5 +1,7 @@
 // -*- c++ -*-
 
+#include "registers.h"
+
 #include "common.h"
 
 #include <pir/common/utils-types.h>
@@ -140,26 +142,36 @@ void init_instr_info ();
 // the most common breakdown of instruction binary format
 //
 // WARNING: this is only for where the uint32_t (or such) representation of the
-// instruction is in little-endian byte order, and it's directly copied into an
-// instr_fields instance with memcpy. Hence the fields appear to be in reverse.
-struct instr_fields
+// instruction is in *little-endian* byte order, and it's directly copied into
+// an instr_fields instance with memcpy. Hence the fields appear to be in
+// reverse.
+struct type_R_syntax
 {
-    byte funct	: 6;
-    byte shamt	: 5;		// this field is only used as part of a 16-bit
+    byte funct	    : 6;	// 
+    byte shamt	    : 5;	// this field is only used as part of a 16-bit
 				// immediate, or in shift instructions
-    byte rd	: 5;
-    byte rt	: 5;
-    byte rs	: 5;
-    byte opcode	: 6;
+    register_id rd  : 5;
+    register_id rt  : 5;
+    register_id rs  : 5;
+
+    byte opcode	    : 6;
 }  __attribute__((__packed__));
 
 // and where a 16-bit immediate is involved:
-struct instr_imm_fields 
+struct type_I_syntax
 {
     uint16_t imm    : 16;
-    byte rt	: 5;
-    byte rs	: 5;
-    byte opcode : 6;
+
+    register_id rt  : 5;
+    register_id rs  : 5;
+
+    byte opcode	    : 6;
+} __attribute__((__packed__));
+
+struct type_J_syntax
+{
+    uint32_t addr   : 26;
+    byte opcode	    : 6;
 } __attribute__((__packed__));
 
 
@@ -168,14 +180,14 @@ struct instr_imm_fields
 struct instruction_t {
     mips_instr_name name;
 
-    byte inregs[2];		// up to two operand register numbers, 0-2
+    register_id inregs[2];	// up to two operand register numbers, 0-2
 				//
 				// the value of instruction fields rs and rt get
 				// loaded in here, except for the shift
 				// instructions which get their single input
 				// from rt (not rs)
     
-    byte destreg;		// destination register number, from instruction
+    register_id destreg;	// destination register number, from instruction
 				// field rd, or rt if an I-type instruction.
 
 // -*- c++ -*-
@@ -389,6 +401,7 @@ CLOSE_NS
 
 std::ostream& operator<< (std::ostream& os, mips_instr_name name);
 
+std::ostream& operator<< (std::ostream& os, const instruction_t & instr);
 
 CLOSE_NS
 
