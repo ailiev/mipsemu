@@ -33,6 +33,7 @@ struct mem_t {
 //    static const addr_t TEXT_START = 0x00400000;
     // getting eg. 0x4000b0 in practice
     static const addr_t DATA_START = 0x10000000;
+    // topmost valid stack byte-address
     static const addr_t STACK_TOP  = 0x7FFFFFFF;
 
     // this bit is not set in text section, and is set in the data section

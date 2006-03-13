@@ -57,7 +57,12 @@ void prepare_cpu ()
     memset (s_regs, 0, sizeof(s_regs));
     
     s_regs[zero]    = 0;		// make this explicit
-    s_regs[sp]	    = 0x7FFFFFFF;	// stack pointer
+
+    // stack pointer, pointing the topmost *word* on the stack
+    s_regs[sp]	    = mem_t::STACK_TOP - (sizeof(word_t)-1);
+
+    // TODO: could set up an argv pointer on the stack too.
+    // not sure yet how argc is done
 }
 
 

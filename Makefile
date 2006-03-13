@@ -2,7 +2,8 @@ PIR = ../pir
 
 include $(PIR)/common.make
 
-LIBSRCS = instructions.cc cpu.cc alu.cc memory.cc  os.cc
+LIBSRCS = status.cc \
+	instructions.cc cpu.cc alu.cc memory.cc os.cc
 
 # SRCS = cpu-main.cc
 

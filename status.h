@@ -23,6 +23,8 @@ enum status_t {
     NUM_STATUS
 };
 
+const char* status_name (status_t);
+
 CLOSE_NS
 
 #endif // _MIPS_STATUS_H

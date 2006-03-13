@@ -50,14 +50,16 @@ status_t mem_get_special_locations (mem_t * mem,
 status_t mem_write (mem_t * mem,
 		    addr_t vaddr, word_t val)
 {
+    const size_t read_size = sizeof(word_t);
+
     status_t rc = STATUS_OK;
     
     addr_t addr;
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
 
-    if (addr >= mem->size) ERREXIT(ILLADDR);
+    if (addr + read_size > mem->size) ERREXIT(ILLADDR);
 
-    memcpy (mem->mem + addr, &val, sizeof(val));
+    memcpy (mem->mem + addr, &val, read_size);
 
  error_egress:
 
@@ -68,14 +70,16 @@ status_t mem_read (mem_t * mem,
 		   addr_t vaddr,
 		   word_t * o_val)
 {
+    const size_t read_size = sizeof(word_t);
+
     status_t rc = STATUS_OK;
     
     addr_t addr;
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
 
-    if (addr >= mem->size) ERREXIT(ILLADDR);
+    if (addr + read_size > mem->size) ERREXIT(ILLADDR);
 
-    memcpy (o_val, mem->mem + addr, sizeof(*o_val));
+    memcpy (o_val, mem->mem + addr, read_size);
 
  error_egress:
 
@@ -100,20 +104,24 @@ status_t virt2phys_addr (const mem_t * mem,
     }
 
     
-    if (GETBIT(full_addr, mem_t::DATA_DETECT_BIT) == 0)
+    if (GETBIT(full_addr, mem_t::STACK_DETECT_BIT) == 0)
     {
-	// text section
-	*o_addr = full_addr - mem->text_start;
+	if (GETBIT(full_addr, mem_t::DATA_DETECT_BIT) == 0)
+	{
+	    // text section
+	    *o_addr = full_addr - mem->text_start;
+	}
+	else
+	{
+	    // data section
+	    *o_addr = mem->textsize +
+		(full_addr - mem_t::DATA_START); // offset into the data section
+	}
     }
-    else if (GETBIT(full_addr, mem_t::STACK_DETECT_BIT) == 0)
+    else
     {
-	// data section
-	*o_addr = mem->textsize +
-	    (full_addr - mem_t::DATA_START); // offset into the data section
-    }
-    else {
-	// stack
-	*o_addr = mem->size -
+	// stack bit is 1
+	*o_addr = (mem->size - 1) -
 	    (mem_t::STACK_TOP - full_addr); // the offset from top of stack
     }
 
