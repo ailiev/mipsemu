@@ -79,11 +79,13 @@ status_t run_process (mem_t * mem,
     {
 	uint32_t instr_code;
 	instruction_t instr;
+	addr_t pc_val = read_register (pc);
 	
 	CHECKCALL (mem_read (mem,
-			     read_register (pc),
+			     pc_val,
 			     &instr_code));
 
+	memset (&instr, 0, sizeof(instr));
 	CHECKCALL (decode_instruction (instr_code,
 				       &instr));
 	LOG (Log::DEBUG, s_logger,
@@ -102,6 +104,7 @@ status_t run_process (mem_t * mem,
 
 status_t decode_instruction (uint32_t instr, instruction_t * o_instr)
 {
+    o_instr->code = instr;
     o_instr->name = decode_instr_name (instr);
     get_register_nums (instr, o_instr);
     prepare_inputs (instr, o_instr);
@@ -119,6 +122,18 @@ status_t execute_instruction (instruction_t * instr)
     status_t rc = STATUS_OK;
     
     mips_instr_info * info = g_instr_info + instr->name;
+
+    {
+	// update the PC, either with the next instruction in line, or with the
+	// target of a branch/jump executed last
+	addr_t br_target_val = read_register(br_target);
+	write_register (pc,
+			br_target_val == 0 ?
+			read_register(pc) + 4 :
+			br_target_val);
+	// reset br_target
+	write_register (br_target, 0);
+    }
 
     switch (info->instr_type) {
     case mips_instr_info::arith:
@@ -172,28 +187,6 @@ status_t execute_instruction (instruction_t * instr)
 	return rc;
     }
 
-    
-
-    // branches always update the pc, even for a not-taken branch.
-    // Also, need to check if a delayed branch should now be taken.
-    
-    if (info->instr_type != mips_instr_info::branch)
-    {
-	uint32_t branch_target = read_register (br_target);
-	if (branch_target > 0) {
-	    // we just executed a delay slot instruction, and now we branch to
-	    // the target.
-	    write_register (pc, branch_target);
-
-	    // reset that register
-	    write_register (br_target, 0);
-	}
-	else {
-	    // next please...
-	    write_register (pc, read_register(pc) + 4);
-	}
-    }
-
     return rc;
 }
 
@@ -229,21 +222,18 @@ status_t exec_branch (instruction_t * instr)
 
 	byte num_ops = g_instr_info[instr->name].num_ops;
 	
-	uint32_t target =
-	    read_register (pc)
-	    + SIGNEXTEND (instr->operands[num_ops] << 2, 18, 32);
 	// the offset is always signed, and is in words, not bytes
+	uint32_t target =
+	    read_register (pc) - 4
+	    + SIGNEXTEND (instr->operands[num_ops] << 2, 18, 32);
 
 	write_register (br_target, target);
     }
-    else {
-	write_register (pc, pc_val + 4);
-    }
-
 
     
     if (g_instr_info[instr->name].should_link) {
-	write_register (ra, pc_val+8);
+	// keep in mind that pc now points to the *next* instruction to execute
+	write_register (ra, pc_val+4);
     }
 
     return STATUS_OK;
@@ -284,7 +274,8 @@ status_t exec_jump (instruction_t * instr)
     write_register (br_target, target);
 
     if (g_instr_info[instr->name].should_link) {
-	write_register (ra, pc_val+8);
+	// keep in mind that pc now points to the *next* instruction to execute
+	write_register (ra, pc_val+4);
     }
 
     return STATUS_OK;
