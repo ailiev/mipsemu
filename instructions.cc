@@ -114,7 +114,7 @@ void init_instr_info ()
 // set up the link flags separately afterwards
 #define SETINFO(instr, v1, v2, v3)				\
     {								\
-        mips_instr_info __kuku = MKINFO (instr, v1,v2,v3,false,false);	\
+        mips_instr_info __kuku = MKINFO (instr, v1,v2,v3);	\
         g_instr_info[instr] = __kuku;				\
     }
 
@@ -148,22 +148,27 @@ void init_instr_info ()
     SETINFO (lw,	load,	    end16,  1);
     SETINFO (lwl,	load,	    end16,  1);
     SETINFO (lwr,	load,	    end16,  1);
-    SETINFO (mfc0,	move,	    none,   0);
-    SETINFO (mflo,	move,	    none,   0);
-    SETINFO (mfhi,	move,	    none,   0);
+
+    SETINFO (mfc0,	move,	    none,   1);
 
     SETINFO (movn,	move,	    none,   2);
     SETINFO (movz,	move,	    none,   2);
 
-    SETINFO (mthi,	move,	    none,   0);
-    SETINFO (mtlo,	move,	    none,   0);
+    SETINFO (mflo,	move,	    none,   0);
+    SETINFO (mfhi,	move,	    none,   0);
+    SETINFO (mthi,	move,	    none,   1);
+    SETINFO (mtlo,	move,	    none,   1);
+    
     SETINFO (mult,	arith,	    none,   2);
     SETINFO (multu,	arith,	    none,   0);
+
     SETINFO (nop,	misc,	    none,   0);
+
     SETINFO (nor,	arith,	    none,   2);
     SETINFO (i_or,	arith,	    none,   2);
     SETINFO (ori,	arith,	    end16,  1);
 //    SETINFO (rfe,	jump,	    none,   0);
+
     SETINFO (sb,	store,	    end16,  2);
     SETINFO (sh,	store,	    end16,  2);
     SETINFO (sll,	arith,	    shift,  1);
@@ -192,6 +197,11 @@ void init_instr_info ()
 	g_instr_info[ linking_instrs[i] ].should_link = true;
     }
 
+
+    
+    //
+    // which instructions have a destination register?
+    //
     for (unsigned i=0; i < ARRLEN(g_instr_info); i++)
     {
 	mips_instr_info * info = &g_instr_info[i];
@@ -202,6 +212,7 @@ void init_instr_info ()
 	case mips_instr_info::arith:
 	case mips_instr_info::load:
 	case mips_instr_info::immediate:
+	case mips_instr_info::move:
 	    info->has_out = true;
 	default:
 	    break;
@@ -216,6 +227,10 @@ void init_instr_info ()
 	    d(div);
 	    d(divu);
 	    d(multu);
+
+	    // these have implicit destination regs
+	    d(mthi);
+	    d(mtlo);
 #undef d
 	default:
 	    break;
@@ -223,29 +238,31 @@ void init_instr_info ()
 
 	// positive exceptions
 
+    } // end for
+    
 
-	// mark signed arithmetic operations
-	// NOTE: these operations require the use of 2s-complement arithmetic,
-	// eg. addiu can have a negative immediate.
-	// The question of whether or not to trap on overflow is separate
-	// (though largely overlapping), and
-	// ignored here
-	mips_instr_name signed_instrs[] =
-	    {
-		add, addi, addiu,
-		sub,
-		div, mult,
-		slt, slti,
-		sra, srav,
-		lb		// vs. lbu
-	    };
-	for (unsigned i=0; i < ARRLEN(signed_instrs); i++)
+
+    // mark signed arithmetic operations
+    // NOTE: these operations require the use of 2s-complement arithmetic,
+    // eg. addiu can have a negative immediate.
+    // The question of whether or not to trap on overflow is separate
+    // (though largely overlapping), and
+    // ignored here
+    mips_instr_name signed_instrs[] =
 	{
-	    g_instr_info[ signed_instrs[i] ].is_signed = true;
-	}
-	
-	
+	    add, addi, addiu,
+	    sub,
+	    div, mult,
+	    slt, slti,
+	    sra, srav,
+	    lb		// vs. lbu
+	};
+    for (unsigned i=0; i < ARRLEN(signed_instrs); i++)
+    {
+	g_instr_info[ signed_instrs[i] ].is_signed = true;
     }
+	
+	
 
 };
 

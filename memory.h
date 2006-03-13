@@ -5,6 +5,13 @@
 
 #include <pir/common/utils-types.h>
 
+#include <stdint.h>
+#include <stddef.h>
+
+
+#ifndef _MEMORY_H
+#define _MEMORY_H
+
 
 MIPS_OPEN_NS
 
@@ -16,10 +23,15 @@ typedef uint16_t hw_t;		// half-word
 typedef uint64_t dword_t;	// double word
 
 
+// the total dynamic memory, ie. heap + stack, in bytes
+const size_t DEFAULT_DYN_MEM_SIZE = 64 * (1<<10);
+
+
 
 struct mem_t {
 
-    static const addr_t TEXT_START = 0x00400000;
+//    static const addr_t TEXT_START = 0x00400000;
+    // getting eg. 0x4000b0 in practice
     static const addr_t DATA_START = 0x10000000;
     static const addr_t STACK_TOP  = 0x7FFFFFFF;
 
@@ -37,6 +49,9 @@ struct mem_t {
     // not set for all valid addresses, set for kernel addresses
     static const byte KERNEL_DETECT_BIT = 31;
 
+
+    addr_t text_start;
+    
     byte * mem;
     size_t size;
 
@@ -46,12 +61,31 @@ struct mem_t {
 
 status_t mem_init (mem_t * mem,
 		   size_t size,
+		   addr_t textstart,
 		   size_t textsize);
 
 status_t mem_write (mem_t * mem,
 		    addr_t full_addr, word_t val);
 
+status_t mem_read (mem_t * mem,
+		   addr_t vaddr,
+		   word_t * o_val);
 
-status_t convert_addr (const mem_t * mem,
-		       addr_t full_addr,
-		       addr_t * o_addr);
+
+status_t virt2phys_addr (const mem_t * mem,
+			 addr_t full_addr,
+			 addr_t * o_addr);
+
+
+/// get pointers to where the text and data sections should be written during
+/// program loading.
+status_t mem_get_special_locations (mem_t * mem,
+				    byte ** o_text_addr,
+				    byte ** o_data_addr);
+
+
+extern mem_t g_mainmem;
+
+CLOSE_NS
+
+#endif // _MEMORY_H

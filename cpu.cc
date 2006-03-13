@@ -1,4 +1,12 @@
+#include "cpu.h"
+
 #include "instructions.h"
+#include "memory.h"
+#include "alu.h"
+#include "os.h"
+
+#include "status.h"
+#include "common.h"
 
 #include <pir/common/utils-types.h>
 #include <pir/common/utils-macros.h>
@@ -6,19 +14,29 @@
 
 #include <stdint.h>
 
+
 MIPS_OPEN_NS
 
 
 namespace {
+    status_t execute_instruction (instruction_t * instr);
+    
     mips_instr_name decode_instr_name (uint32_t instr);
+    
+    status_t exec_branch (instruction_t * instr);
+    status_t exec_jump (instruction_t * instr);
+    status_t exec_load (instruction_t * instr);
+    status_t exec_store (instruction_t * instr);
+    status_t exec_move (instruction_t * instr);
+    status_t exec_break (const instruction_t * instr);
+    
+    void prepare_inputs (uint32_t instr, instruction_t * o_instr);
     
     void 	    get_register_nums (uint32_t instr, instruction_t * o_instr);
     
     mips_instr_name decode_0_opcode (uint32_t instr);
     mips_instr_name decode_1_opcode (uint32_t instr);
     
-    uint32_t 	    read_register (byte regnum);
-    void 	    write_register (byte regnum, uint32_t val);
 }
 
 
@@ -36,10 +54,44 @@ namespace {
 
 void prepare_cpu ()
 {
-    s_regs[0]	= 0;
-    s_regs[29]	= 0x7FFFFFFF;	// stack pointer
+    memset (s_regs, 0, sizeof(s_regs));
+    
+    s_regs[zero]    = 0;		// make this explicit
+    s_regs[sp]	    = 0x7FFFFFFF;	// stack pointer
 }
 
+
+
+status_t run_process (mem_t * mem,
+		      addr_t start_addr)
+{
+    status_t rc = STATUS_OK;
+    
+    write_register (pc, start_addr);
+    
+    // presumably an exit syscall will exit this process too.
+    while (true)
+    {
+	uint32_t instr_code;
+	instruction_t instr;
+	
+	CHECKCALL (mem_read (mem,
+			     read_register (pc),
+			     &instr_code));
+
+	CHECKCALL (decode_instruction (instr_code,
+				       &instr));
+	LOG (Log::DEBUG, s_logger,
+	     "instruction name = " << instr.name);
+
+	CHECKCALL (execute_instruction (&instr));
+    }
+
+ error_egress:
+
+    return rc;
+}
+				       
 
 status_t decode_instruction (uint32_t instr, instruction_t * o_instr)
 {
@@ -50,29 +102,34 @@ status_t decode_instruction (uint32_t instr, instruction_t * o_instr)
     return STATUS_OK;
 }
 
+
+
+OPEN_ANON_NS
+
+
 status_t execute_instruction (instruction_t * instr)
 {
     status_t rc = STATUS_OK;
     
-    instr_info * info = g_instr_info + instr->name;
+    mips_instr_info * info = g_instr_info + instr->name;
 
     switch (info->instr_type) {
-    case arith:
+    case mips_instr_info::arith:
 	rc = exec_arith (instr);
 	break;
-    case load:
+    case mips_instr_info::load:
 	rc = exec_load (instr);
 	break;
-    case store:
+    case mips_instr_info::store:
 	rc = exec_store (instr);
 	break;
-    case branch:
+    case mips_instr_info::branch:
 	rc = exec_branch (instr);
 	break;
-    case jump:
+    case mips_instr_info::jump:
 	rc = exec_jump (instr);
 	break;
-    case move:
+    case mips_instr_info::move:
 	rc = exec_move (instr);
 	break;
     default:
@@ -92,11 +149,13 @@ status_t execute_instruction (instruction_t * instr)
 	rc = exec_syscall ();
 	break;
     case lui:
+    {
 	uint32_t val = (instr->operands[0] << 16) & 0xFFFF0000;
 	write_register (instr->destreg, val);
 	break;
+    }
     case i_break:
-	rc = exec_break (instr->operands[0]);
+	rc = exec_break (instr);
 	break;
     default:
 	break;
@@ -108,11 +167,25 @@ status_t execute_instruction (instruction_t * instr)
 
     
 
-    // jumps and branches always update the pc, even for a not-taken branch
-    if (info->instr_type != branch &&
-	info->instr_type != jump)
+    // jumps and branches always update the pc, even for a not-taken branch.
+    // Also, need to check if a delayed branch should now be taken.
+    
+    if (info->instr_type != mips_instr_info::branch &&
+	info->instr_type != mips_instr_info::jump)
     {
-	write_register (pc, read_register(pc) + 4);
+	uint32_t branch_target = read_register (br_target);
+	if (branch_target > 0) {
+	    // we just executed a delay slot instruction, and now we branch to
+	    // the target.
+	    write_register (pc, branch_target);
+
+	    // reset that register
+	    write_register (br_target, 0);
+	}
+	else {
+	    // next please...
+	    write_register (pc, read_register(pc) + 4);
+	}
     }
 
     return rc;
@@ -125,6 +198,8 @@ status_t exec_branch (instruction_t * instr)
     // (operands[num_ops]
 
     bool should_branch;
+
+    addr_t pc_val = read_register (pc);
 
     switch (instr->name) {
 #define c(name,op)							\
@@ -140,21 +215,28 @@ status_t exec_branch (instruction_t * instr)
 	c (bltzal,	<);
 	c (bne,		!=);
 #undef c
+    default:
+	break;
     }
 	
     if (should_branch) {
 
+	byte num_ops = g_instr_info[instr->name].num_ops;
+	
 	uint32_t target =
 	    read_register (pc)
-	    + static_cast<int32_t> (instr->operands[instr->num_ops] << 2);
-	// the offset is always signed, and is in words, not bytes
+	    + static_cast<int32_t> (instr->operands[num_ops] << 2);
+	// the offset is always signed (so we get sign-extension through the
+	// cast), and is in words, not bytes
 
 	write_register (br_target, target);
     }
     else {
-	write_register (pc, read_register(pc) + 4);
+	write_register (pc, pc_val + 4);
     }
 
+
+    
     if (g_instr_info[instr->name].should_link) {
 	write_register (ra, pc_val+8);
     }
@@ -168,6 +250,9 @@ status_t exec_jump (instruction_t * instr)
     // the target address is in words, so multiply by 4 to get byte address
     // the high 4 bits come from the PC
     addr_t pc_val = read_register(pc);
+    
+    // should be 26 bits
+    assert (instr->operands[0] <= 0x03FFFFFFU);
     
     uint32_t target =
 	(pc_val & 0xF0000000U) | 
@@ -193,7 +278,7 @@ status_t exec_load (instruction_t * instr)
 
     uint32_t val;
 
-    CHECKCALL ( mem_read (&mainmem, address, &val) );
+    CHECKCALL ( mem_read (&g_mainmem, address, &val) );
 
     write_register (instr->destreg, val);
 
@@ -211,7 +296,7 @@ status_t exec_store (instruction_t * instr)
 						   // signed
 
     // operands[1] has the rt register value
-    CHECKCALL ( mem_write (&mainmem, address,
+    CHECKCALL ( mem_write (&g_mainmem, address,
 			   instr->operands[1]) );
 
  error_egress:
@@ -219,6 +304,66 @@ status_t exec_store (instruction_t * instr)
 }
 
 
+status_t exec_move (instruction_t * instr)
+{
+    status_t rc = STATUS_OK;
+    
+    byte src, dest;		// register numbers
+    bool should_move = true;
+    
+    switch (instr->name) {
+    case mfc0:
+	ERREXIT(UNIMPLEMENTED);
+	break;
+
+    case mflo:
+	src = lo;
+	dest = instr->destreg;
+	break;
+    case mfhi:
+	src = hi;
+	dest = instr->destreg;
+	break;
+    case mtlo:
+	src = instr->inregs[0];
+	dest = lo;
+	break;
+    case mthi:
+	src = instr->inregs[0];
+	dest = hi;
+	break;
+
+    case movn:
+	should_move = instr->operands[1] != 0;
+	src = instr->inregs[0];
+	dest = instr->destreg;
+	break;
+    case movz:
+	should_move = instr->operands[1] == 0;
+	src = instr->inregs[0];
+	dest = instr->destreg;
+	break;
+	
+    default:
+	break;
+    }
+
+    if (should_move)
+    {
+	write_register (dest, read_register (src));
+    }
+
+ error_egress:
+    return rc;
+}
+
+
+status_t exec_break (const instruction_t * instr)
+{
+    LOG (Log::DEBUG, s_logger,
+	 "exec_break " << instr->operands[0]);
+    return STATUS_OK;
+}
 
 void prepare_inputs (uint32_t instr, instruction_t * o_instr)
 {
@@ -238,32 +383,37 @@ void prepare_inputs (uint32_t instr, instruction_t * o_instr)
     
     // which operand is this (zero-based of course)
     unsigned opidx = info->num_ops;
+    
     switch (info->immed_type) {
-    case end16:
+
+    case mips_instr_info::end16:
 	// the idea with the casting is to do sign-extending if signed and
 	// zero-extending if unsigned.
 	o_instr->operands[opidx] =
-	    info->instr_type == arith && info->is_signed ?
-	    static_cast<int32_t>  (GETBITS(instr,16,31)) :
-	    static_cast<uint32_t> (GETBITS(instr,16,31));
+	    info->instr_type == mips_instr_info::arith &&
+	    info->is_signed ?
+	    static_cast<int32_t>  (GETBITS(instr,0,15)) :
+	    static_cast<uint32_t> (GETBITS(instr,0,15));
 	break;
-    case end26:
+
+    case mips_instr_info::end26:
 	// a jump instruction
 	o_instr->operands[opidx] = GETBITS(instr,0,25);
 	break;
-    case breakcode:
+    case mips_instr_info::breakcode:
 	// raise instruction with this code
 	o_instr->operands[opidx] = GETBITS(instr,6,25);
 	break;
-    case shift:
+    case mips_instr_info::shift:
 	o_instr->operands[opidx] = GETBITS(instr,6,10);
 	break;
-    case none:
+    case mips_instr_info::none:
 	break;
+
     }
 
     // put in a zero for conditional branches which compare a register to zero.
-    if (info->instr_type == branch &&
+    if (info->instr_type == mips_instr_info::branch &&
 	info->num_ops == 1)
     {
 	o_instr->operands[1] = 0;
@@ -287,10 +437,10 @@ void get_register_nums (uint32_t instr, instruction_t * o_instr)
     // the input registers, however many there are
     switch (info->num_ops) {
     case 2:
-	o_instr->in2 = fields.rt;
+	o_instr->inregs[1] = fields.rt;
 	// fall-through needed here
     case 1:
-	o_instr->in1 = fields.rs;
+	o_instr->inregs[0] = fields.rs;
     }
 
     // the shift instructions cause trouble here: they ignore rs and get their
@@ -299,7 +449,7 @@ void get_register_nums (uint32_t instr, instruction_t * o_instr)
     case sll:
     case srl:
     case sra:
-	o_instr->in1 = fields.rt;
+	o_instr->inregs[0] = fields.rt;
     default:
 	break;
     }
@@ -311,10 +461,10 @@ void get_register_nums (uint32_t instr, instruction_t * o_instr)
 	case mips_instr_info::end16:
 	    // if there is a 16-bit immediate, destination is where $rt usually
 	    // is
-	    o_instr->dest = fields.rt;
+	    o_instr->destreg = fields.rt;
 	    break;
 	default:
-	    o_instr->dest = fields.rd;
+	    o_instr->destreg = fields.rd;
 	}
     }
 	    
@@ -329,8 +479,8 @@ mips_instr_name decode_instr_name (uint32_t instr)
     
     byte opcode = GETBITS (instr, 26, 31);
 
-    LOG (Log::DEBUG, s_logger,
-	 "opcode = " << (unsigned)opcode);
+    LOG (Log::DUMP, s_logger,
+	 "opcode = 0x" << std::hex << unsigned(opcode));
     
     switch (opcode) {
 #define f(val,ret) case val: return ret
@@ -448,6 +598,9 @@ mips_instr_name decode_1_opcode (uint32_t instr)
 }
 
 
+CLOSE_NS			// anonymous namespace
+
+
 const char* register_name (unsigned reg_num)
 {
     struct reg_info_t {
@@ -496,7 +649,7 @@ const char* register_name (unsigned reg_num)
     assert (reg_num < NUMREGS);
     assert (reg_infos[reg_num].id == reg_num);
     
-    return regnames[reg_num].name;
+    return reg_infos[reg_num].name;
 }
 
 

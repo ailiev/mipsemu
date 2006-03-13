@@ -26,13 +26,13 @@ int main (int argc, char *argv[])
 	mips::mips_instr_info * info = mips::g_instr_info + inst.name;
 	cout << inst.name;
 	if (info->has_out) {
-	    cout << " " << mips::register_name (inst.dest);
+	    cout << " " << mips::register_name (inst.destreg);
 	}
 	if (info->num_ops > 0) {
-	    cout << ", " << mips::register_name (inst.in1);
+	    cout << ", " << mips::register_name (inst.inregs[0]);
 	}
 	if (info->num_ops > 1) {
-	    cout << ", " << mips::register_name (inst.in2);
+	    cout << ", " << mips::register_name (inst.inregs[1]);
 	}
 	cout << endl;
     }

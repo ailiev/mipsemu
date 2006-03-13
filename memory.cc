@@ -1,6 +1,22 @@
+#include "memory.h"
+
+#include "status.h"
+#include "common.h"
+
+#include <pir/common/utils-macros.h>
+
+#include <string.h>
+
+
+
+MIPS_OPEN_NS
+
+
+mem_t g_mainmem;		// declared extern in memory.h
 
 status_t mem_init (mem_t * mem,
 		   size_t size,
+		   size_t textstart,
 		   size_t textsize)
 {
     status_t rc = STATUS_OK;
@@ -12,11 +28,22 @@ status_t mem_init (mem_t * mem,
     mem->mem = new byte[size];
     if (mem->mem == NULL) ERREXIT (NOMEM);
 
+    mem->text_start = textstart;
     mem->textsize = textsize;
     
  error_egress:
 
     return rc;
+}
+
+status_t mem_get_special_locations (mem_t * mem,
+				    byte ** o_text_addr,
+				    byte ** o_data_addr)
+{
+    *o_text_addr = mem->mem;
+    *o_data_addr = mem->mem + mem->textsize;
+
+    return STATUS_OK;
 }
 
 
@@ -65,7 +92,7 @@ status_t virt2phys_addr (const mem_t * mem,
 {
     status_t rc = STATUS_OK;
 
-    if (full_addr < mem_t::TEXT_START ||
+    if (full_addr < mem->text_start ||
 	GETBIT(full_addr, mem_t::KERNEL_DETECT_BIT) == 1)
     {
 	// too high or too low!
@@ -76,7 +103,7 @@ status_t virt2phys_addr (const mem_t * mem,
     if (GETBIT(full_addr, mem_t::DATA_DETECT_BIT) == 0)
     {
 	// text section
-	*o_addr = full_addr - mem_t::TEXT_START;
+	*o_addr = full_addr - mem->text_start;
     }
     else if (GETBIT(full_addr, mem_t::STACK_DETECT_BIT) == 0)
     {
@@ -94,3 +121,6 @@ status_t virt2phys_addr (const mem_t * mem,
 
     return rc;
 }
+
+
+CLOSE_NS

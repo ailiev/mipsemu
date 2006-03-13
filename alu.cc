@@ -1,6 +1,19 @@
+#include "alu.h"
+
+#include "cpu.h"
+
+#include "status.h"
+#include "common.h"
+
+#include <pir/common/utils-macros.h>
+
+
+MIPS_OPEN_NS
+
 status_t exec_arith (instruction_t * instr)
 {
     uint32_t result;
+    status_t rc = STATUS_OK;
     
     switch (instr->name) {
 #define act(op) instr->operands[0] op instr->operands[1]
@@ -16,8 +29,8 @@ status_t exec_arith (instruction_t * instr)
 	d2  (add, addi,	    +);	    break;
 	ds2 (addu, addiu,   +);	    break;
 
-	ds (sub,	    -);	    break;
-	d  (subu,	    -);	    break;
+	ds1 (sub,	    -);	    break;
+	d1  (subu,	    -);	    break;
 
 	d2 (i_and, andi,    &&);    break;
 	d2 (i_or, ori,	    ||);    break;
@@ -39,6 +52,9 @@ status_t exec_arith (instruction_t * instr)
 	// do as (not or)
 	result = ! (instr->operands[0] || instr->operands[1]);
 	break;
+
+    default:
+	break;
 			
     }
 
@@ -47,13 +63,16 @@ status_t exec_arith (instruction_t * instr)
 
 
     // multiply
+    // FIXME: just writing a zero into hi for now
     {
-	uint64_t res;
+	uint32_t res;
 	if	(instr->name == mult)  res = signed_act(*);
 	else if (instr->name == multu) res = act(*);
 
-	write_register (lo, GETBITS(res, 0, 31));
-	write_register (hi, GETBITS(res, 32,63));
+	write_register (lo, res);
+	write_register (hi, 0);
+// 	write_register (lo, GETBITS(res, 0, 31));
+// 	write_register (hi, GETBITS(res, 32,63));
     }
     goto egress;
 
@@ -74,3 +93,5 @@ status_t exec_arith (instruction_t * instr)
     return rc;
 }
 
+
+CLOSE_NS
