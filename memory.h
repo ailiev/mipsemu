@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <string>
+
 
 #ifndef _MEMORY_H
 #define _MEMORY_H
@@ -57,16 +59,26 @@ struct mem_t {
     size_t size;
 
     size_t textsize;
+    size_t static_data_size;
 };
 
 
 status_t mem_init (mem_t * mem,
 		   size_t size,
 		   addr_t textstart,
-		   size_t textsize);
+		   size_t textsize,
+		   size_t static_data_size);
 
 status_t mem_write (mem_t * mem,
-		    addr_t full_addr, word_t val);
+		    addr_t vaddr, word_t val);
+
+status_t mem_write_bytes (mem_t * mem,
+			  addr_t dest_vaddr,
+			  const void * buf, size_t len);
+
+status_t mem_read_bytes (mem_t * mem,
+			 addr_t vaddr,
+			 void * o_buf, size_t len);
 
 status_t mem_read (mem_t * mem,
 		   addr_t vaddr,
@@ -77,12 +89,19 @@ status_t virt2phys_addr (const mem_t * mem,
 			 addr_t full_addr,
 			 addr_t * o_addr);
 
+void mem_dump (const mem_t * mem,
+	       const std::string& filename);
+
 
 /// get pointers to where the text and data sections should be written during
 /// program loading.
-status_t mem_get_special_locations (mem_t * mem,
-				    byte ** o_text_addr,
-				    byte ** o_data_addr);
+/// any of the return params can be NULL
+status_t mem_get_special_locations (
+    mem_t * mem,
+    byte ** o_text_addr,
+    byte ** o_data_addr,
+    byte ** o_heap
+    );
 
 
 extern mem_t g_mainmem;

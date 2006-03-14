@@ -13,6 +13,11 @@ MIPS_OPEN_NS
 
 #define CHECKCALL(f) { rc = f; if (rc != STATUS_OK) { raise(SIGTRAP); goto error_egress; } }
 
+#define CHECK_ALLOC(ptr, alloc_func) {		\
+    ptr = alloc_func;				\
+    if (ptr == NULL) ERREXIT(NOMEM);		\
+}
+
 
 enum status_t {
     STATUS_OK = 0,

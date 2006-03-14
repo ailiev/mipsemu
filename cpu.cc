@@ -36,6 +36,10 @@ namespace {
     
     mips_instr_name decode_0_opcode (uint32_t instr);
     mips_instr_name decode_1_opcode (uint32_t instr);
+
+    status_t write_argv (mem_t * mem,
+			 int argc, char * argv[],
+			 addr_t * o_argc_addr);    
     
 }
 
@@ -52,19 +56,30 @@ namespace {
 }
 
 
-void prepare_cpu ()
+// TODO: ignoring envp for now
+status_t prepare_cpu (mem_t * mem,
+		      int argc, char * argv[])
 {
+    status_t rc = STATUS_OK;
+    
+    addr_t argc_addr;
+    
     memset (s_regs, 0, sizeof(s_regs));
     
     s_regs[zero]    = 0;		// make this explicit
 
-    // stack pointer, pointing the topmost *word* on the stack
-    s_regs[sp]	    = mem_t::STACK_TOP - (sizeof(word_t)-1);
 
-    // TODO: could set up an argv pointer on the stack too.
-    // not sure yet how argc is done
+    CHECKCALL ( write_argv (mem, argc, argv, &argc_addr) );
+    
+    // and set $sp to point to argc, one word below &argv[0]
+    s_regs[sp] = argc_addr;
+
+    // easier to load it up into a hex editor to have a look
+    mem_dump (mem, "memory-at-start");
+
+ error_egress:
+    return rc;
 }
-
 
 
 status_t run_process (mem_t * mem,
@@ -89,9 +104,10 @@ status_t run_process (mem_t * mem,
 	CHECKCALL (decode_instruction (instr_code,
 				       &instr));
 	LOG (Log::DEBUG, s_logger,
-	     "instruction code = 0x"
+	     "pc = 0x" << std::hex << pc_val
+	     << "; instr code = 0x"
 	     << std::hex << std::setw(8) << std::setfill('0') << instr_code
-	     << "; decoded = " << instr);
+	     << "; decoded: " << instr);
 
 	CHECKCALL (execute_instruction (&instr));
     }
@@ -117,9 +133,88 @@ status_t decode_instruction (uint32_t instr, instruction_t * o_instr)
 OPEN_ANON_NS
 
 
+
+/// @param o_argc_addr where argc was written, as a MIPS VA (virtual address)
+status_t write_argv (mem_t * mem,
+		     int argc, char * argv[],
+		     addr_t * o_argc_addr)
+{
+    status_t rc = STATUS_OK;
+    
+    addr_t vaddr = mem_t::STACK_TOP + 1;
+    
+    // the vaddress of each argv, as we write them on the stack
+    addr_t * argv_vaddrs = new size_t[argc];
+
+    // write the argv values into the top of the stack
+    for (int i = argc-1; i >= 0; i--)
+    {
+	// vaddr now points one byte above where this argv should *end*
+	
+	size_t len = strlen (argv[i]) + 1; // include the terminating 0-byte
+
+	vaddr -= len;
+
+	argv_vaddrs[i] = vaddr;
+
+	CHECKCALL (
+	    mem_write_bytes (mem, vaddr, reinterpret_cast<byte*>(argv[i]), len)
+	    );
+
+	LOG (Log::DEBUG, s_logger,
+	     "argv[" << i << "] at vaddr 0x" << std::hex << vaddr);
+    }
+
+    // vaddr now points to start of the value argv[0]
+
+
+    // now write (VM) pointers to all the argv's onto the stack
+
+    // move vaddr down, and word-align it (which may move it a bit more down)
+    vaddr -= 4;
+    vaddr &= 0xFFFFFFFC;
+    
+    // write in a NULL for envp
+    CHECKCALL ( mem_write (mem, vaddr, 0) );
+    vaddr -= 4;
+    // write in a NULL address, at the end (top) of the argv values
+    CHECKCALL ( mem_write (mem, vaddr, 0) );
+    
+    // write in the addresses of the argv's we wrote above
+    for (int i = argc-1; i >= 0; i--)
+    {
+	vaddr -= 4;
+	CHECKCALL ( mem_write (mem, vaddr, argv_vaddrs[i]) );
+	LOG (Log::DEBUG, s_logger,
+	     "&argv[" << i << "] at vaddr 0x" << std::hex << vaddr);
+    }
+
+
+    // vaddr now has &argv[0]
+    // now write in argc
+    vaddr -= 4;
+    CHECKCALL ( mem_write (mem, vaddr, argc) );
+    
+    LOG (Log::DEBUG, s_logger,
+	 "argc at vaddr 0x" << std::hex << vaddr);
+
+    
+
+ error_egress:
+ egress:
+    delete [] argv_vaddrs;
+    *o_argc_addr = vaddr;
+    return rc;
+}
+
+
+
 status_t execute_instruction (instruction_t * instr)
 {
     status_t rc = STATUS_OK;
+
+    // for the debugger mostly
+    addr_t pc_val = read_register(pc);
     
     mips_instr_info * info = g_instr_info + instr->name;
 
@@ -285,14 +380,51 @@ status_t exec_jump (instruction_t * instr)
 status_t exec_load (instruction_t * instr)
 {
     status_t rc = STATUS_OK;
+//    mips_instr_info * info = g_instr_info + instr->name;
     
     word_t address =
 	instr->operands[0] +
 	SIGNEXTEND_16TO32 (instr->operands[1]);
 
+    LOG (Log::DEBUG, s_logger,
+	 "loading from address 0x" << std::hex << address);
+    
     uint32_t val;
 
-    CHECKCALL ( mem_read (&g_mainmem, address, &val) );
+    // need to issue different kinds of reads for different word sizes.
+    switch (instr->name) {
+    case lb: case lbu:
+	CHECKCALL ( mem_read_bytes (&g_mainmem, address, &val, 1) );
+	break;
+    case lw:
+	CHECKCALL ( mem_read (&g_mainmem, address, &val) );
+	break;
+    case lh: case lhu:
+	CHECKCALL ( mem_read_bytes (&g_mainmem, address, &val, 2) );
+	break;
+    default:
+	break;
+    }
+
+
+    // more work for sub-word loads
+    // WARNING: all the bit-extractions below are for little-endian words only
+    switch (instr->name) {
+    case lb:
+	val = SIGNEXTEND_8TO32 (GETBITS(val,0,7));
+	break;
+    case lbu:
+	val = GETBITS(val,0,7);
+	break;
+    case lh:
+	val = SIGNEXTEND_16TO32 (GETBITS(val,0,15));
+	break;
+    case lhu:
+	val = GETBITS(val,7,15);
+	break;
+    default:
+	break;
+    }
 
     write_register (instr->destreg, val);
 
@@ -310,8 +442,26 @@ status_t exec_store (instruction_t * instr)
 						   // signed
 
     // operands[1] has the rt register value
-    CHECKCALL ( mem_write (&g_mainmem, address,
-			   instr->operands[1]) );
+    switch (instr->name) {
+    case sw:
+	CHECKCALL ( mem_write (&g_mainmem, address,
+			       instr->operands[1]) );
+	break;
+    case sb:
+    {
+	byte b = static_cast<byte> (instr->operands[1]);
+	CHECKCALL ( mem_write_bytes (&g_mainmem, address, &b, 1) );
+	break;
+    }
+    case sh:
+    {
+	uint16_t h = static_cast<uint16_t> (instr->operands[1]);
+	CHECKCALL ( mem_write_bytes (&g_mainmem, address, &h, 2) );
+	break;
+    }
+    default:
+	break;
+    }
 
  error_egress:
     return rc;
@@ -520,17 +670,17 @@ mips_instr_name decode_instr_name (uint32_t instr)
 
 	f (32, lb);
 	f (33, lh);
-	f (34, lwl);
+//	f (34, lwl);
 	f (35, lw);
 	f (36, lbu);
 	f (37, lhu);
-	f (38, lwr);
+//	f (38, lwr);
 
 	f (40, sb);
 	f (41, sh);
-	f (42, swl);
+//	f (42, swl);
 	f (43, sw);
-	f (46, swr);
+//	f (46, swr);
 #undef f
     }
 

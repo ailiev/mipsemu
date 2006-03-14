@@ -15,6 +15,10 @@ EXES =
 # needs dietlibc/syscall.h
 os.o : CPPFLAGS += -I$(HOME)/work/src/crossgcc
 
+# for header files within pir, which include other pir headers without the pir/
+# prefix
+CPPFLAGS += -I$(PIR)
+
 
 #
 # this section is pretty generic

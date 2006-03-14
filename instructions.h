@@ -52,8 +52,10 @@ enum mips_instr_name
     lui,
     lw,
 //    lwcz,
-    lwl,
-    lwr,
+
+//     lwl,
+//     lwr,
+
     mfc0,			// move from the exception coprocessor
 //    mfcz,
     mfhi,
@@ -86,8 +88,10 @@ enum mips_instr_name
     subu,
     sw,
 //    swcz,
-    swl,
-    swr,
+
+//     swl,
+//     swr,
+
     syscall,
     i_xor,
     xori,

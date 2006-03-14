@@ -42,5 +42,18 @@ offset.
 
 The order of operands is significant for many instructions, like shifts, and has
 no obvious first priciples behind it. Thus, need to pay attention when writing
-the evaluation code, and document how my .in1 and .in2 fields are used for each
-case.
+the evaluation code, and document how my .inreg[0] and .inreg[1] fields are used
+for each case.
+
+
+<date>Mon Mar 13 17:39:51 2006</date>
+
+Trying to figure out exactly what __start does to set up the parameters to main:
+- top of stack goes into $a0
+- $sp + 4 goes into $a1 ???
+- 3 low bits of $sp are masked out,
+- grow stack by 24, then write $ra onto start of the new frame
+- $a2 <- $a0 + 1
+- $a2 <- $a2 << 2
+- $a2 <- $a2 + $a1
+- $a2 written to $at + $

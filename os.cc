@@ -20,6 +20,8 @@ status_t exec_syscall ()
     
     uint32_t callnum = read_register (v0);
 
+    void * buf = NULL;
+
     switch (callnum) {
     case __NR_exit:
     {
@@ -30,6 +32,31 @@ status_t exec_syscall ()
 	exit (EXIT_SUCCESS);
 	break;
     }
+    case __NR_write:
+    {
+	int fd = read_register (a0);
+	addr_t buf_vaddr = read_register (a1);
+	size_t count = read_register (a2);
+
+	ssize_t rc;
+	
+	CHECK_ALLOC ( buf, malloc (count) );
+	
+	CHECKCALL ( mem_read_bytes (&g_mainmem,
+				    buf_vaddr,
+				    buf, count) );
+
+	{
+	    char msg[] = "syscall write:";
+	    write (fd, msg, sizeof(msg)-1);
+	}
+
+	rc = write (fd, buf , count);
+	write_register (v0, rc);
+
+
+	break;
+    }
 
     default:
 	ERREXIT (ILLSYSCALL);
@@ -38,6 +65,7 @@ status_t exec_syscall ()
 
  error_egress:
 // egress:
+    if (buf) free (buf);
     return rc;
 }
 

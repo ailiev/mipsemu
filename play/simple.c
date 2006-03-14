@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int g_dummy = 42;
+#include <unistd.h>
+
+int g_dummy = 50;
 
 
 
@@ -12,13 +14,19 @@ int add5 (int x) {
 }
 
 
-int main (int argc, char** argv) {
+int main (int argc, char* argv[]) {
 
-    int x = g_dummy;
+    char * int_str = argv[1];
+    unsigned i = atoi(int_str);
+    return i;
     
-    int z = add5(x);
+/*     int x = g_dummy; */
     
-//    char * text = (char*) malloc (20);
+/*     int z = add5(x); */
+    
+/*     write (1, int_str, strlen(int_str)); */
+/*     write (3, &i, sizeof(i)); */
+/* //    char * text = (char*) malloc (20); */
 
-    return x + z;
+/*     return i + z; */
 }

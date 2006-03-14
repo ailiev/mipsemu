@@ -4,6 +4,7 @@
 #include "common.h"
 
 #include <pir/common/utils-macros.h>
+#include <pir/common/utils.h>	// writefile()
 
 #include <string.h>
 
@@ -14,10 +15,19 @@ MIPS_OPEN_NS
 
 mem_t g_mainmem;		// declared extern in memory.h
 
+
+namespace {
+    Log::logger_t s_logger = Log::makeLogger ("mips-mem",
+					      boost::none, boost::none);
+}
+
+
+
 status_t mem_init (mem_t * mem,
 		   size_t size,
 		   size_t textstart,
-		   size_t textsize)
+		   size_t textsize,
+		   size_t static_data_size)
 {
     status_t rc = STATUS_OK;
     
@@ -28,8 +38,11 @@ status_t mem_init (mem_t * mem,
     mem->mem = new byte[size];
     if (mem->mem == NULL) ERREXIT (NOMEM);
 
+    memset (mem->mem, 0, mem->size);
+
     mem->text_start = textstart;
     mem->textsize = textsize;
+    mem->static_data_size = static_data_size;
     
  error_egress:
 
@@ -38,10 +51,13 @@ status_t mem_init (mem_t * mem,
 
 status_t mem_get_special_locations (mem_t * mem,
 				    byte ** o_text_addr,
-				    byte ** o_data_addr)
+				    byte ** o_data_addr,
+				    byte ** o_heap)
 {
-    *o_text_addr = mem->mem;
-    *o_data_addr = mem->mem + mem->textsize;
+    if (o_text_addr) *o_text_addr = mem->mem;
+    if (o_data_addr) *o_data_addr = mem->mem + mem->textsize;
+    if (o_heap)
+	*o_heap = mem->mem + mem->textsize + mem->static_data_size;
 
     return STATUS_OK;
 }
@@ -56,6 +72,9 @@ status_t mem_write (mem_t * mem,
     
     addr_t addr;
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
+    LOG (Log::DEBUG, s_logger,
+	 "mem_write phys addr 0x" << std::hex << addr
+	 << " len = " << std::dec << read_size);
 
     if (addr + read_size > mem->size) ERREXIT(ILLADDR);
 
@@ -65,6 +84,48 @@ status_t mem_write (mem_t * mem,
 
     return rc;
 }
+
+status_t mem_write_bytes (mem_t * mem,
+			  addr_t vaddr,
+			  const void * buf, size_t len)
+{
+    status_t rc = STATUS_OK;
+    
+    addr_t addr;
+    CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
+    LOG (Log::DEBUG, s_logger,
+	 "mem_write_bytes phys addr 0x" << std::hex << addr
+	 << " len = " << std::dec << len);
+
+    if (addr + len > mem->size) ERREXIT(ILLADDR);
+    
+    memcpy (mem->mem + addr, buf, len);
+
+ error_egress:
+    return rc;
+}
+
+status_t mem_read_bytes (mem_t * mem,
+			 addr_t vaddr,
+			 void * o_buf, size_t len)
+{
+    status_t rc = STATUS_OK;
+    
+    addr_t addr;
+    CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
+
+    LOG (Log::DEBUG, s_logger,
+	 "mem_read_bytes phys addr 0x" << std::hex << addr
+	 << " len = " << std::dec << len);
+
+    if (addr + len > mem->size) ERREXIT(ILLADDR);
+    
+    memcpy (o_buf, mem->mem + addr, len);
+
+ error_egress:
+    return rc;
+}
+
 
 status_t mem_read (mem_t * mem,
 		   addr_t vaddr,
@@ -77,6 +138,9 @@ status_t mem_read (mem_t * mem,
     addr_t addr;
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
 
+    LOG (Log::DEBUG, s_logger,
+	 "mem_read phys addr 0x" << std::hex << addr);
+
     if (addr + read_size > mem->size) ERREXIT(ILLADDR);
 
     memcpy (o_val, mem->mem + addr, read_size);
@@ -87,7 +151,7 @@ status_t mem_read (mem_t * mem,
 }
 
 
-   
+
 /// convert a full 32-bit address, in MIPS conventions, to an address into one
 /// of our compact memory arrays.
 status_t virt2phys_addr (const mem_t * mem,
@@ -128,6 +192,14 @@ status_t virt2phys_addr (const mem_t * mem,
  error_egress:
 
     return rc;
+}
+
+
+void mem_dump (const mem_t * mem,
+	       const std::string& filename)
+{
+    const ByteBuffer membytes (mem->mem, mem->size, ByteBuffer::SHALLOW);
+    writefile (filename, membytes);
 }
 
 

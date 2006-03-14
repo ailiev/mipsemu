@@ -43,8 +43,8 @@ static const mips_instr_str_name g_op_names[] =
     { lui, "lui" },
     { lw, "lw" },
 //    { lwcz, "lwcz" },
-    { lwl, "lwl" },
-    { lwr, "lwr" },
+//     { lwl, "lwl" },
+//     { lwr, "lwr" },
     { mfc0, "mfc0" },			// move from the exception coprocessor
 //    { mfcz, "mfcz" },
     { mfhi, "mfhi" },
@@ -77,8 +77,8 @@ static const mips_instr_str_name g_op_names[] =
     { subu, "subu" },
     { sw, "sw" },
 //    { swcz, "swcz" },
-    { swl, "swl" },
-    { swr, "swr" },
+//     { swl, "swl" },
+//     { swr, "swr" },
     { syscall, "syscall" },
     { i_xor, "i_xor" },
     { xori, "xori" }
@@ -146,8 +146,8 @@ void init_instr_info ()
     SETINFO (lhu,	load,	    end16,  1);
     SETINFO (lui,	immediate,  end16,  0);
     SETINFO (lw,	load,	    end16,  1);
-    SETINFO (lwl,	load,	    end16,  1);
-    SETINFO (lwr,	load,	    end16,  1);
+//     SETINFO (lwl,	load,	    end16,  1);
+//     SETINFO (lwr,	load,	    end16,  1);
 
     SETINFO (mfc0,	move,	    none,   1);
 
@@ -184,8 +184,8 @@ void init_instr_info ()
     SETINFO (sub,	arith,	    none,   2);
     SETINFO (subu,	arith,	    none,   2);
     SETINFO (sw, 	store,	    end16,  2);
-    SETINFO (swl, 	store,	    end16,  2);
-    SETINFO (swr, 	store,	    end16,  2);
+//     SETINFO (swl, 	store,	    end16,  2);
+//     SETINFO (swr, 	store,	    end16,  2);
     SETINFO (syscall,	misc,	    none,   0);
     SETINFO (i_xor,	arith,	    none,   2);
     SETINFO (xori,	arith,	    end16,  1);

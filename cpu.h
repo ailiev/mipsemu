@@ -14,7 +14,8 @@
 
 MIPS_OPEN_NS
 
-void prepare_cpu ();
+status_t prepare_cpu (mem_t * mem,
+		      int argc, char * argv[]);
 
 void write_register (register_id regnum, uint32_t val);
 uint32_t read_register (register_id regnum);

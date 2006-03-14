@@ -24,12 +24,16 @@ VPATH = $(dietdir)/bin-$(ARCH)
 
 all: simple
 
+%.s : CFLAGS += -fverbose-asm
+
 %.s: %.c
 	$(CC) -S $(CPPFLAGS) $(CFLAGS) $<
 
 simple: simple.o $(LIBOBJS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LOADLIBES) $(LDLIBS)
 
+out.s: simple
+	mipsel-linux-objdump -d $< > $@
 
 clean:
 	$(RM) *.o simple
