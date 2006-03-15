@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 
+#include <iostream>
 
 #ifndef _REGISTERS_H
 #define _REGISTERS_H
@@ -63,6 +64,7 @@ typedef uint32_t register_file_t [NUMREGS];
 
 const char* register_name (register_id reg_num);
 
+std::ostream& dump_registers (std::ostream& os);
 
 CLOSE_NS
 

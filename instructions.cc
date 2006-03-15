@@ -250,12 +250,17 @@ void init_instr_info ()
     // ignored here
     mips_instr_name signed_instrs[] =
 	{
-	    add, addi, addiu,
-	    sub,
+	    // add and sub just need to trap on overflow, which we're not doing
+	    // right now
+//	    add,		// tr
+// 	    sub,
+	    addi, addiu,	// the immediate needs to be sign-extended
 	    div, mult,
-	    slt, slti,
-	    sra, srav,
-	    lb		// vs. lbu
+	    slt,		// compare as signed
+	    slti,		// sign-extend immediate, and compare as signed
+	    sra, srav,		// shift as signed, to shift in a sign bit from
+                                // the left
+	    lb, lh		// sign-extend after loading
 	};
     for (unsigned i=0; i < ARRLEN(signed_instrs); i++)
     {

@@ -16,8 +16,7 @@ status_t exec_arith (instruction_t * instr)
     status_t rc = STATUS_OK;
     
     switch (instr->name) {
-	// FIXME: not quite sure how I should handle signed arithmetic here,
-	// need to think more about it.
+	// FIXME: not handling overflow issues for now
 #define act(op) instr->operands[0] op instr->operands[1]
 #define signed_act(op)					\
 	static_cast<int32_t> (instr->operands[0]) op	\
@@ -29,9 +28,9 @@ status_t exec_arith (instruction_t * instr)
 #define ds1(n1,op)	case n1: result = signed_act(op)
 	
 	d2  (add, addi,	    +);	    break;
-	ds2 (addu, addiu,   +);	    break;
+	d2  (addu, addiu,   +);	    break;
 
-	ds1 (sub,	    -);	    break;
+	d1  (sub,	    -);	    break;
 	d1  (subu,	    -);	    break;
 
 	d2 (i_and, andi,    &);    break;

@@ -214,7 +214,9 @@ status_t execute_instruction (instruction_t * instr)
     status_t rc = STATUS_OK;
 
     // for the debugger mostly
-    addr_t pc_val = read_register(pc);
+    addr_t pc_val;
+
+    pc_val = read_register(pc);
     
     mips_instr_info * info = g_instr_info + instr->name;
 
@@ -293,21 +295,37 @@ status_t exec_branch (instruction_t * instr)
 
     bool should_branch;
 
+    mips_instr_info * info = g_instr_info + instr->name;
+    
+
     addr_t pc_val = read_register (pc);
 
     switch (instr->name) {
+	// these comparisons are fine unsigned
 #define c(name,op)							\
     case name:								\
 	should_branch = instr->operands[0] op instr->operands[1]; break
 
 	c (beq,		==);
+	c (bne,		!=);
+
+#undef c
+
+	// do a signed comparison (unsigned doesn't work with lt and gt zero
+	// comparisons)
+#define c(name,op)					\
+    case name:						\
+	should_branch =					\
+	    static_cast<int32_t>(instr->operands[0]) op	\
+	    static_cast<int32_t>(instr->operands[1]);	\
+	break
+
 	c (bgez,	>=);
 	c (bgezal,	>=);
 	c (bgtz,	>);
 	c (blez,	<=);
 	c (bltz,	<);
 	c (bltzal,	<);
-	c (bne,		!=);
 #undef c
     default:
 	break;
@@ -315,19 +333,22 @@ status_t exec_branch (instruction_t * instr)
 	
     if (should_branch) {
 
-	byte num_ops = g_instr_info[instr->name].num_ops;
+	byte num_ops = info->num_ops;
 	
 	// the offset is always signed, and is in words, not bytes
+	// NOTE: the offset should be from the delay slot address apparently.
 	uint32_t target =
-	    read_register (pc) - 4
+	    pc_val
 	    + SIGNEXTEND (instr->operands[num_ops] << 2, 18, 32);
 
 	write_register (br_target, target);
     }
 
     
-    if (g_instr_info[instr->name].should_link) {
+    if (info->should_link) {
 	// keep in mind that pc now points to the *next* instruction to execute
+	// (the delay slot), so after the branch should return to instr. after
+	// the PC (delay slot)
 	write_register (ra, pc_val+4);
     }
 
@@ -582,6 +603,12 @@ void prepare_inputs (uint32_t instr, instruction_t * o_instr)
     {
 	o_instr->operands[1] = 0;
     }
+
+    LOG (Log::DEBUG, s_logger,
+	 "operand vals (hex): " << std::hex
+	 << o_instr->operands[0] << ", "
+	 << o_instr->operands[1] << ", "
+	 << o_instr->operands[2]);
 	
 }
 
@@ -643,8 +670,8 @@ mips_instr_name decode_instr_name (uint32_t instr)
     
     byte opcode = GETBITS (instr, 26, 31);
 
-    LOG (Log::DUMP, s_logger,
-	 "opcode = 0x" << std::hex << unsigned(opcode));
+//     LOG (Log::DUMP, s_logger,
+// 	 "opcode = 0x" << std::hex << unsigned(opcode));
     
     switch (opcode) {
 #define f(val,ret) case val: return ret
@@ -692,8 +719,8 @@ mips_instr_name decode_0_opcode (uint32_t instr)
 {
     byte funct = GETBITS (instr, 0, 5);
 
-    LOG (Log::DEBUG, s_logger,
-	 "funct = " << (unsigned)funct);
+//     LOG (Log::DUMP, s_logger,
+// 	 "funct = " << (unsigned)funct);
     
     switch (funct) {
 #define f(val,ret) case val: return ret
@@ -834,5 +861,13 @@ void write_register (register_id regid, uint32_t val)
     s_regs[regid] = val;
 }
 
-
+// std::ostream& dump_registers (std::ostream& os)
+// {
+//     for (int i=0; i < 8; i++) {
+// 	for (int j=0; j < 4; j++) {
+// 	    register_id id = i + (8*j);
+// 	    os << register_name(id) << " = "
+// 	       << std::hex << std:: read_register(id) << " ";
+	    
+// 		}
 CLOSE_NS
