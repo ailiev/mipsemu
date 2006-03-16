@@ -211,7 +211,9 @@ status_t write_argv (mem_t * mem,
 
 status_t execute_instruction (instruction_t * instr)
 {
-    status_t rc = STATUS_OK;
+    // if nothing handles the instruction, we'll get an illegal instruction
+    // error.
+    status_t rc = STATUS_ILLINSTR;
 
     // for the debugger mostly
     addr_t pc_val;
@@ -251,18 +253,20 @@ status_t execute_instruction (instruction_t * instr)
     case mips_instr_info::move:
 	rc = exec_move (instr);
 	break;
-    default:
+
+	// these cases handled down below
+    case mips_instr_info::immediate:
+    case mips_instr_info::trap:
+    case mips_instr_info::misc:
 	break;
     }
 
-    if (rc != STATUS_OK) {
-	return rc;
-    }
 
     
-    // leftovers
+    // leftovers - none of these match if the above switch matched
     switch (instr->name) {
     case nop:
+	rc = STATUS_OK;
 	break;
     case syscall:
 	rc = exec_syscall ();
@@ -271,19 +275,21 @@ status_t execute_instruction (instruction_t * instr)
     {
 	uint32_t val = (instr->operands[0] << 16) & 0xFFFF0000;
 	write_register (instr->destreg, val);
+	rc = STATUS_OK;
 	break;
     }
     case i_break:
 	rc = exec_break (instr);
 	break;
+
+    case illegal_instruction:
+	ERREXIT(ILLADDR);
+
     default:
 	break;
     }
 
-    if (rc != STATUS_OK) {
-	return rc;
-    }
-
+ error_egress:
     return rc;
 }
 
@@ -441,7 +447,7 @@ status_t exec_load (instruction_t * instr)
 	val = SIGNEXTEND_16TO32 (GETBITS(val,0,15));
 	break;
     case lhu:
-	val = GETBITS(val,7,15);
+	val = GETBITS(val,0,15);
 	break;
     default:
 	break;

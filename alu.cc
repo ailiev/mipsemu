@@ -54,41 +54,38 @@ status_t exec_arith (instruction_t * instr)
 	result = ! (instr->operands[0] || instr->operands[1]);
 	break;
 
-    default:
-	break;
-			
-    }
-
-    write_register (instr->destreg, result);
-    goto egress;
-
-
-    // multiply
-    // FIXME: just writing a zero into hi for now
+    case mult: case multu:
     {
+	// FIXME: ignoring the high 32 bits for now, setting to zero.
 	uint32_t res;
 	if	(instr->name == mult)  res = signed_act(*);
 	else if (instr->name == multu) res = act(*);
-
+	
 	write_register (lo, res);
 	write_register (hi, 0);
+
+	goto egress;		// we're not writing a destination register,
+				// just skip out
 // 	write_register (lo, GETBITS(res, 0, 31));
 // 	write_register (hi, GETBITS(res, 32,63));
     }
-    goto egress;
-
-
-    // divide
-    if (instr->name == div) {
+    
+    case div:
 	write_register (lo, signed_act(/));
 	write_register (hi, signed_act(%));
-    }
-    else if (instr->name == divu) {
+	goto egress;
+    case divu:
 	write_register (lo, act(/));
 	write_register (hi, act(%));
-    }
-    goto egress;
+	goto egress;
 
+    default:
+	break;
+    }
+
+    write_register (instr->destreg, result);
+
+    goto egress;
 
  egress:
     return rc;
