@@ -339,13 +339,12 @@ status_t exec_branch (instruction_t * instr)
 	
     if (should_branch) {
 
-	byte num_ops = info->num_ops;
-	
 	// the offset is always signed, and is in words, not bytes
+	// it is the third operand - the first two are the values to compare.
 	// NOTE: the offset should be from the delay slot address apparently.
 	uint32_t target =
 	    pc_val
-	    + SIGNEXTEND (instr->operands[num_ops] << 2, 18, 32);
+	    + SIGNEXTEND (instr->operands[2] << 2, 18, 32);
 
 	write_register (br_target, target);
     }
@@ -411,7 +410,7 @@ status_t exec_load (instruction_t * instr)
     
     word_t address =
 	instr->operands[0] +
-	SIGNEXTEND_16TO32 (instr->operands[1]);
+	SIGNEXTEND_WORD(instr->operands[1], 16, 32);
 
     LOG (Log::DEBUG, s_logger,
 	 "loading from address 0x" << std::hex << address);
@@ -438,13 +437,13 @@ status_t exec_load (instruction_t * instr)
     // WARNING: all the bit-extractions below are for little-endian words only
     switch (instr->name) {
     case lb:
-	val = SIGNEXTEND_8TO32 (GETBITS(val,0,7));
+	val = SIGNEXTEND_WORD (GETBITS(val,0,7), 8, 32);
 	break;
     case lbu:
 	val = GETBITS(val,0,7);
 	break;
     case lh:
-	val = SIGNEXTEND_16TO32 (GETBITS(val,0,15));
+	val = SIGNEXTEND_WORD (GETBITS(val,0,15), 16, 32);
 	break;
     case lhu:
 	val = GETBITS(val,0,15);
@@ -465,7 +464,7 @@ status_t exec_store (instruction_t * instr)
     
     word_t address =
 	instr->operands[0] +	// the rs register
-	SIGNEXTEND_16TO32 (instr->operands[2]); // the 16-bit immediate,
+	SIGNEXTEND_WORD (instr->operands[2], 16, 32); // the 16-bit immediate,
 						   // signed
 
     // operands[1] has the rt register value
@@ -578,13 +577,22 @@ void prepare_inputs (uint32_t instr, instruction_t * o_instr)
     switch (info->immed_type) {
 
     case mips_instr_info::end16:
+	if (info->instr_type == mips_instr_info::branch &&
+	    info->num_ops == 1)
+	{
+	    // these branch instructions have *two* immediate params - the zero
+	    // and the offset. the zero offset should go at the end, so:
+	    opidx ++;
+	}
+	
 	// the idea with the casting is to do sign-extending if signed and
 	// zero-extending if unsigned.
 	o_instr->operands[opidx] =
 	    info->instr_type == mips_instr_info::arith &&
 	    info->is_signed ?
-	    SIGNEXTEND_16TO32 (GETBITS(instr,0,15)) :
+	    SIGNEXTEND_WORD (GETBITS(instr,0,15), 16, 32) :
 	    (GETBITS(instr,0,15));
+
 	break;
 
     case mips_instr_info::end26:

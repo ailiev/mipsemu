@@ -5,8 +5,9 @@
 
 // To achieve the sign-extension from 16 bit to 32 bit, first cast to
 // 16 signed bits, and only then sign-extend via a cast to 32bit signed.
-#define SIGNEXTEND_16TO32(x) static_cast<int32_t>(static_cast<int16_t>(x))
-#define SIGNEXTEND_8TO32(x)  static_cast<int32_t>(static_cast<int8_t>(x))
+// this generalizes to any of 8, 16, 32, 64 bits:
+#define SIGNEXTEND_WORD(x,from,to) \
+    static_cast<int ## to ## _t> (static_cast<int ## from ## _t> (x))
 
 #define MIPS_OPEN_NS namespace mips {
 

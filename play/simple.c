@@ -3,11 +3,8 @@
 
 #include <unistd.h>
 
-int g_dummy = 100;
+//int g_dummy = 100;
 
-
-
-//void printf (const char *);
 
 int add5 (int x) {
     return x+5;
@@ -16,22 +13,22 @@ int add5 (int x) {
 
 int main (int argc, char* argv[]) {
 
-/*     char *int_strs[2] = { argv[1], argv[2] }; */
-/*     unsigned is[2] = { atoi(int_strs[0]), atoi(int_strs[1]) }; */
+    char *int_strs[2] = { argv[1], argv[2] };
+    unsigned is[2] = { atoi(int_strs[0]), atoi(int_strs[1]) };
 
 //    char * arg = argv[1];
-    char s1[] = "012345678901234567";
+//    char s1[] = "012345678901234567";
 //    char s2[32] = " papa bye bye";
 
-    int len;
+    return is[0] / is[1];
 
 //    strcat (s2, s1);
 
-    len = sizeof(s1);
+/*     len = strlen(arg); */
 
-    write (1, s1, len);
+/*     write (1, arg, len); */
     
-    return len;
+/*     return len; */
 //    return g_dummy + is[0] * is[1];
 
 //    int x = g_dummy;

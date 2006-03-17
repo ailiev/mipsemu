@@ -13,6 +13,8 @@ MIPS_OPEN_NS
 status_t exec_arith (instruction_t * instr)
 {
     uint32_t result;
+    uint64_t result_64;		// for multiplication
+    
     status_t rc = STATUS_OK;
     
     switch (instr->name) {
@@ -54,21 +56,23 @@ status_t exec_arith (instruction_t * instr)
 	result = ! (instr->operands[0] || instr->operands[1]);
 	break;
 
-    case mult: case multu:
-    {
-	// FIXME: ignoring the high 32 bits for now, setting to zero.
-	uint32_t res;
-	if	(instr->name == mult)  res = signed_act(*);
-	else if (instr->name == multu) res = act(*);
+    case mult:
+	result_64 =
+	    SIGNEXTEND_WORD(instr->operands[0], 32, 64) *
+	    SIGNEXTEND_WORD(instr->operands[1], 32, 64);
+	goto write_mult_result;
+    case multu:
+	result_64 =
+	    static_cast<uint64_t>(instr->operands[0]) *
+	    static_cast<uint64_t>(instr->operands[1]);
+	goto write_mult_result;
 	
-	write_register (lo, res);
-	write_register (hi, 0);
+    write_mult_result:
+	write_register (lo, GETBITS(result_64, 0, 31));
+	write_register (hi, GETBITS(result_64, 32, 63));
 
 	goto egress;		// we're not writing a destination register,
 				// just skip out
-// 	write_register (lo, GETBITS(res, 0, 31));
-// 	write_register (hi, GETBITS(res, 32,63));
-    }
     
     case div:
 	write_register (lo, signed_act(/));
@@ -91,5 +95,45 @@ status_t exec_arith (instruction_t * instr)
     return rc;
 }
 
+
+
+#if 0
+// from http://www.cs.uaf.edu/2004/fall/cs301/notes/notes/node47.html
+void long_multiply (int32_t v1, int32_t v2,
+		    uint32_t * o_lo, uint32_t * o_hi)
+{
+}
+// 2-digit multiplication in base 2^32:
+//          A B
+//        x C D
+//        ------
+//        AD || BD
+//+ AC || CB || 0
+//
+    int32_t a, b, c, d;
+    int32_t c1, c2, c3;
+
+//    int32_t HI, LO;
+
+    a = GETBITS (v1, 16, 31);
+    b = GETBITS (v1, 0, 15);
+    c = GETBITS (v2, 16, 31);
+    d = GETBITS (v2, 0, 15);
+
+    
+    
+    LO = b * d;                   /* BD */
+    x = a * d + c * b;            /* AD + CB */
+    y = GETBITS (LO,16,31) + x;
+
+    LO = CONCAT_16BIT (y & 0xffff, LO & 0xffff);   // (LO & 0xffff) | ((y & 0xffff) << 16);
+    HI = GETBITS (y,16,31) + (a*c);
+
+//  HI += a * c;                  /* AC */
+
+    *o_lo = LO;
+    *o_hi = HI;
+}
+#endif
 
 CLOSE_NS
