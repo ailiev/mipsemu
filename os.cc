@@ -1,4 +1,5 @@
 #include "os.h"
+#include "mman.h"
 
 #include "cpu.h"
 
@@ -10,6 +11,10 @@
 // this is a MIPS OS!
 #include <dietlibc/mips/syscalls.h>
 
+//#include <sys/mman.h>		// for MAP_FAILED
+
+#include <errno.h>
+
 #include <iostream>
 
 MIPS_OPEN_NS
@@ -19,6 +24,12 @@ namespace {
     Log::logger_t s_logger = Log::makeLogger ("mips-syscall",
 					      boost::none, boost::none);
 }
+
+
+namespace {
+    status_t do_mmap ();
+}
+
 
 
 status_t exec_syscall ()
@@ -75,6 +86,14 @@ status_t exec_syscall ()
 	break;
     }
 
+    case __NR_mmap:
+	CHECKCALL ( do_mmap () );
+	break;
+
+    case __NR_munmap:
+	std::clog << "munmap not implemented yet" << std::endl;
+	break;
+
     default:
 	ERREXIT (ILLSYSCALL);
 	break;
@@ -87,4 +106,58 @@ status_t exec_syscall ()
 }
 
 
-CLOSE_NS
+
+OPEN_ANON_NS
+
+
+status_t do_mmap ()
+{
+    status_t rc = STATUS_OK;
+    
+    addr_t start_vaddr = read_register(a0);
+    word_t len = read_register(a1);
+    word_t prot = read_register(a2);
+    word_t flags = read_register(a3);
+
+    // these two on the stack:
+    word_t fd;
+    word_t offset;
+
+    // the answer
+    addr_t alloc_addr;
+    
+    // from looking at some generated assembly:
+    // arg 5: sp+16
+    // arg 6: sp+20
+    // also, in this case ra was saved to sp+24 before that call.
+    // the stack size can vary and these args always seem to go into those
+    // offsets relative to sp.
+    //
+    // ra goes at the top of the frame though, not always at sp+24
+    addr_t sp_val = read_register(sp);
+    CHECKCALL ( mem_read (&g_mainmem, sp_val+16, &fd) );
+    CHECKCALL ( mem_read (&g_mainmem, sp_val+20, &offset) );
+
+
+    // and do the allocation
+    CHECKCALL ( heap::alloc_mem (len, &alloc_addr) );
+
+    goto egress;
+    
+ error_egress:
+    write_register (a3, static_cast<uint32_t>(-1));	// MAP_FAILED is -1
+    write_register (v0, ENOMEM); 
+    return rc;
+    
+ egress:
+    write_register (v0, alloc_addr);
+    write_register (a3, 0);	// __unified_syscall looks for an error
+				// indication here!
+    return rc;
+}
+
+CLOSE_NS			// anon
+
+
+CLOSE_NS			// mips
+

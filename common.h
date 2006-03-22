@@ -9,6 +9,8 @@
 #define SIGNEXTEND_WORD(x,from,to) \
     static_cast<int ## to ## _t> (static_cast<int ## from ## _t> (x))
 
+#define GEN_OPEN_NS(name) namespace name {
+    
 #define MIPS_OPEN_NS namespace mips {
 
 #define OPEN_ANON_NS namespace {

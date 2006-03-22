@@ -3,7 +3,8 @@ PIR = ../pir
 include $(PIR)/common.make
 
 LIBSRCS = status.cc \
-	instructions.cc cpu.cc alu.cc memory.cc os.cc
+	instructions.cc cpu.cc alu.cc memory.cc \
+	os.cc mman.cc
 
 # SRCS = cpu-main.cc
 

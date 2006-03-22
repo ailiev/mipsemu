@@ -659,6 +659,17 @@ void get_register_nums (uint32_t instr, instruction_t * o_instr)
 	break;
     }
 
+    // the shift variable instructions have their registers in the 'wrong' order
+    // - first arg is in rt and second is in rs, and order matters a lot
+    switch (info->name) {
+    case sllv:
+    case srlv:
+    case srav:
+	std::swap (o_instr->inregs[0], o_instr->inregs[1]);
+    default:
+	break;
+    }
+
     // the output register
     if (info->has_out)
     {

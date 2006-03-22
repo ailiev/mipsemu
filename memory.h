@@ -104,6 +104,14 @@ status_t mem_get_special_locations (
     );
 
 
+/// where is the start of the heap? (virtual address)
+inline addr_t mem_heap_start(const mem_t * mem)
+{
+    return mem_t::DATA_START + mem->static_data_size;
+}
+
+
+
 extern mem_t g_mainmem;
 
 CLOSE_NS

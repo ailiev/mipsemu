@@ -15,3 +15,14 @@ formats, depending on whether rt is used for an operand too.
 
 We're ignoring overflow exceptions for now, just doing signed and unsigned
 arithmetic instructions identically.
+
+
+<date>Fri Mar 17 17:50:27 2006</date>
+
+How does mmap happen?
+
+The static function do_mmap in alloc.c calls the mmap assembly stub which just
+enters the syscall number into v0 and executes 'syscall'. The MIPS setup is
+clean enough that the stack and parameter setup created for the mmap() call from
+do_mmap can be used direclty by the syscall.
+
