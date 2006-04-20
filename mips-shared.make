@@ -12,9 +12,10 @@ LD:=$(cross)$(LD)
 
 # cflags from the dietlibc MIPS makefile
 # note especially the -fno-pic, which is how dietlibc on MIPS is compiled.
-CFLAGS += -Wall -Os -G 0 -fstrict-aliasing -fno-pic -mno-abicalls
+CFLAGS += -G 0 -fstrict-aliasing -fno-pic -mno-abicalls
 
-CFLAGS += -O2
+CFLAGS += -Os
+
 CPPFLAGS += -I$(dietdir)/include
 LDFLAGS += -static
 
