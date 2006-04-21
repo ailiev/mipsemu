@@ -1,10 +1,15 @@
 PIR = ../pir
 
-include $(PIR)/common.make
+include $(PIR)/utils.make
+include $(PIR)/header.make
 
 LIBSRCS = status.cc \
 	instructions.cc cpu.cc alu.cc memory.cc \
 	os.cc mman.cc
+
+# this controls which memory implementation we use
+LIBSRCS += memory-impl-simple.o
+
 
 # SRCS = cpu-main.cc
 

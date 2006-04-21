@@ -1,5 +1,7 @@
 #include "memory.h"
 
+#include "memory-impl.h"
+
 #include "status.h"
 #include "common.h"
 
@@ -35,10 +37,7 @@ status_t mem_init (mem_t * mem,
     
     mem->size = size;
     
-    mem->mem = new byte[size];
-    if (mem->mem == NULL) ERREXIT (NOMEM);
-
-    memset (mem->mem, 0, mem->size);
+    CHECKCALL ( mem_impl_init (&mem->impl, size) );
 
     mem->text_start = textstart;
     mem->textsize = textsize;
@@ -49,17 +48,11 @@ status_t mem_init (mem_t * mem,
     return rc;
 }
 
-status_t mem_get_special_locations (mem_t * mem,
-				    byte ** o_text_addr,
-				    byte ** o_data_addr,
-				    byte ** o_heap)
+/// Called when the initialization (eg. loading of text and static data) is done
+status_t mem_init_complete (mem_t * mem)
 {
-    if (o_text_addr) *o_text_addr = mem->mem;
-    if (o_data_addr) *o_data_addr = mem->mem + mem->textsize;
-    if (o_heap)
-	*o_heap = mem->mem + mem->textsize + mem->static_data_size;
-
-    return STATUS_OK;
+    // just pass it on
+    return mem_impl_init_complete (&mem->impl);
 }
 
 
@@ -71,6 +64,13 @@ status_t mem_write (mem_t * mem,
     status_t rc = STATUS_OK;
     
     addr_t addr;
+
+    // make sure it's word-aligned
+    if (vaddr & 0x3 != 0)
+    {
+	ERREXIT (ALIGN);
+    }
+    
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
     LOG (Log::DEBUG, s_logger,
 	 "mem_write phys addr 0x" << std::hex << addr
@@ -78,7 +78,7 @@ status_t mem_write (mem_t * mem,
 
     if (addr + read_size > mem->size) ERREXIT(ILLADDR);
 
-    memcpy (mem->mem + addr, &val, read_size);
+    CHECKCALL ( mem_impl_write (&mem->impl, addr, reinterpret_cast<byte*>(&val), read_size) );
 
  error_egress:
 
@@ -87,11 +87,11 @@ status_t mem_write (mem_t * mem,
 
 status_t mem_write_bytes (mem_t * mem,
 			  addr_t vaddr,
-			  const void * buf, size_t len)
+			  const byte * buf, size_t len)
 {
     status_t rc = STATUS_OK;
     
-    addr_t addr;
+    phys_addr_t addr;
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
     LOG (Log::DEBUG, s_logger,
 	 "mem_write_bytes phys addr 0x" << std::hex << addr
@@ -99,7 +99,7 @@ status_t mem_write_bytes (mem_t * mem,
 
     if (addr + len > mem->size) ERREXIT(ILLADDR);
     
-    memcpy (mem->mem + addr, buf, len);
+    CHECKCALL ( mem_impl_write (&mem->impl, addr, buf, len) );
 
  error_egress:
     return rc;
@@ -107,11 +107,11 @@ status_t mem_write_bytes (mem_t * mem,
 
 status_t mem_read_bytes (mem_t * mem,
 			 addr_t vaddr,
-			 void * o_buf, size_t len)
+			 byte * o_buf, size_t len)
 {
     status_t rc = STATUS_OK;
     
-    addr_t addr;
+    phys_addr_t addr;
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
 
     LOG (Log::DEBUG, s_logger,
@@ -120,7 +120,7 @@ status_t mem_read_bytes (mem_t * mem,
 
     if (addr + len > mem->size) ERREXIT(ILLADDR);
     
-    memcpy (o_buf, mem->mem + addr, len);
+    CHECKCALL ( mem_impl_read (&mem->impl, addr, o_buf, len) );
 
  error_egress:
     return rc;
@@ -135,7 +135,14 @@ status_t mem_read (mem_t * mem,
 
     status_t rc = STATUS_OK;
     
-    addr_t addr;
+    phys_addr_t addr;
+
+    // make sure it's word-aligned
+    if (vaddr & 0x3 != 0)
+    {
+	ERREXIT (ALIGN);
+    }
+
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
 
     LOG (Log::DEBUG, s_logger,
@@ -143,7 +150,8 @@ status_t mem_read (mem_t * mem,
 
     if (addr + read_size > mem->size) ERREXIT(ILLADDR);
 
-    memcpy (o_val, mem->mem + addr, read_size);
+    CHECKCALL ( mem_impl_read (&mem->impl, addr,
+			       reinterpret_cast<byte*>(o_val), read_size) );
 
  error_egress:
 
@@ -198,8 +206,7 @@ status_t virt2phys_addr (const mem_t * mem,
 void mem_dump (const mem_t * mem,
 	       const std::string& filename)
 {
-    const ByteBuffer membytes (mem->mem, mem->size, ByteBuffer::SHALLOW);
-    writefile (filename, membytes);
+    mem_impl_dump (&mem->impl, filename);
 }
 
 

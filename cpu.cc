@@ -420,13 +420,15 @@ status_t exec_load (instruction_t * instr)
     // need to issue different kinds of reads for different word sizes.
     switch (instr->name) {
     case lb: case lbu:
-	CHECKCALL ( mem_read_bytes (&g_mainmem, address, &val, 1) );
+	CHECKCALL ( mem_read_bytes (&g_mainmem, address,
+				    reinterpret_cast<byte*>(&val), 1) );
 	break;
     case lw:
 	CHECKCALL ( mem_read (&g_mainmem, address, &val) );
 	break;
     case lh: case lhu:
-	CHECKCALL ( mem_read_bytes (&g_mainmem, address, &val, 2) );
+	CHECKCALL ( mem_read_bytes (&g_mainmem, address,
+				    reinterpret_cast<byte*>(&val), 2) );
 	break;
     default:
 	break;
@@ -482,7 +484,8 @@ status_t exec_store (instruction_t * instr)
     case sh:
     {
 	uint16_t h = static_cast<uint16_t> (instr->operands[1]);
-	CHECKCALL ( mem_write_bytes (&g_mainmem, address, &h, 2) );
+	CHECKCALL ( mem_write_bytes (&g_mainmem, address,
+				     reinterpret_cast<byte*>(&h), 2) );
 	break;
     }
     default:

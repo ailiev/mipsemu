@@ -1,5 +1,6 @@
 // -*- c++ -*-
 
+#include "memory-impl.h"
 #include "status.h"
 #include "common.h"
 
@@ -55,7 +56,8 @@ struct mem_t {
 
     addr_t text_start;
     
-    byte * mem;
+    mem_impl_t impl;
+    
     size_t size;
 
     size_t textsize;
@@ -74,11 +76,14 @@ status_t mem_write (mem_t * mem,
 
 status_t mem_write_bytes (mem_t * mem,
 			  addr_t dest_vaddr,
-			  const void * buf, size_t len);
+			  const byte * buf, size_t len);
+
+/// Called when the initialization (eg. loading of text and static data) is done
+status_t mem_init_complete (mem_t * mem);
 
 status_t mem_read_bytes (mem_t * mem,
 			 addr_t vaddr,
-			 void * o_buf, size_t len);
+			 byte * o_buf, size_t len);
 
 status_t mem_read (mem_t * mem,
 		   addr_t vaddr,
@@ -92,16 +97,6 @@ status_t virt2phys_addr (const mem_t * mem,
 void mem_dump (const mem_t * mem,
 	       const std::string& filename);
 
-
-/// get pointers to where the text and data sections should be written during
-/// program loading.
-/// any of the return params can be NULL
-status_t mem_get_special_locations (
-    mem_t * mem,
-    byte ** o_text_addr,
-    byte ** o_data_addr,
-    byte ** o_heap
-    );
 
 
 /// where is the start of the heap? (virtual address)

@@ -114,7 +114,7 @@ status_t init ()
 
     CHECKCALL ( mem_write_bytes (&g_mainmem,
 				 mem_heap_start (&g_mainmem),
-				 &marker, sizeof(marker)) );
+				 reinterpret_cast<byte*>(&marker), sizeof(marker)) );
 
  error_egress:
     return rc;
@@ -136,7 +136,8 @@ status_t alloc_mem (size_t size, addr_t * o_addr)
     do {
 	CHECKCALL ( mem_read_bytes (&g_mainmem,
 				    reg_addr,
-				    &reg_marker, sizeof(reg_marker)) );
+				    reinterpret_cast<byte*> (&reg_marker),
+				    sizeof(reg_marker)) );
 
 	if (reg_marker.tag.alloc == ALLOC_FREE &&
 	    reg_marker.size >= size + REG_MARKER_OVERHEAD)
@@ -167,10 +168,12 @@ status_t alloc_mem (size_t size, addr_t * o_addr)
 
 	    CHECKCALL ( mem_write_bytes (&g_mainmem,
 					 reg_addr,
-					 &new_begin, sizeof(new_begin)) );
+					 reinterpret_cast<byte*>(&new_begin),
+					 sizeof(new_begin)) );
 	    CHECKCALL ( mem_write_bytes (&g_mainmem,
 					 mem_end,
-					 &new_end, sizeof(new_end)) );
+					 reinterpret_cast<byte*>(&new_end),
+					 sizeof(new_end)) );
 
 	    if (reg_marker.size > size + REG_MARKER_OVERHEAD)
 	    {
@@ -217,7 +220,8 @@ status_t mark_free_region (mem_t * mem,
 
     CHECKCALL ( mem_write_bytes (mem,
 				 start_addr + next_reg_offset(*new_alloc),
-				 &begin_marker, sizeof(begin_marker)) );
+				 reinterpret_cast<byte*>(&begin_marker),
+				 sizeof(begin_marker)) );
 
     // and now perhaps an end marker, but only if orig was not the last region
     // in the heap.
@@ -233,7 +237,8 @@ status_t mark_free_region (mem_t * mem,
 	CHECKCALL ( mem_write_bytes (mem,
 				     start_addr +
 				     next_reg_offset(*orig) + begin_marker.size,
-				     &end_marker, sizeof(end_marker)) );
+				     reinterpret_cast<byte*>(&end_marker),
+				     sizeof(end_marker)) );
     }
 
  error_egress:

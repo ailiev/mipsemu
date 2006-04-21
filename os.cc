@@ -40,7 +40,7 @@ status_t exec_syscall ()
     
     uint32_t callnum = read_register (v0);
 
-    void * buf = NULL;
+    byte * buf = NULL;
 
     switch (callnum) {
     case __NR_exit:
@@ -64,7 +64,7 @@ status_t exec_syscall ()
 
 	ssize_t rc;
 	
-	CHECK_ALLOC ( buf, malloc (count) );
+	CHECK_ALLOC ( buf, (byte*) malloc (count) );
 	
 	CHECKCALL ( mem_read_bytes (&g_mainmem,
 				    buf_vaddr,
