@@ -8,7 +8,9 @@
 MIPS_OPEN_NS
 
 
-// just use an array
+//
+// just use a local array for the RAM
+//
 
 struct priv_impl_t {
 
@@ -20,10 +22,11 @@ struct priv_impl_t {
 status_t mem_impl_init (mem_impl_t * mem,
 			size_t size)
 {
+    status_t rc = STATUS_OK;
+    
     priv_impl_t * impl;
 
-
-    impl = new priv_impl_t;
+    CHECK_ALLOC ( impl, (priv_impl_t*) malloc (sizeof(priv_impl_t)) );
 
     impl->ram = new byte[size];
     memset (impl->ram, 0, size);
@@ -31,7 +34,10 @@ status_t mem_impl_init (mem_impl_t * mem,
     mem->size = size;
     mem->priv_impl = impl;
 
-    return STATUS_OK;
+
+ error_egress:
+    
+    return rc;
 }
 
 

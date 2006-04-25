@@ -9,9 +9,9 @@
 
 MIPS_OPEN_NS
 
-#define ERREXIT(status) { rc = STATUS_ ## status; raise(SIGTRAP); goto error_egress; }
+#define ERREXIT(status) { rc = mips::STATUS_ ## status; raise(SIGTRAP); goto error_egress; }
 
-#define CHECKRC(rc) if (rc != STATUS_OK) { raise(SIGTRAP); goto error_egress; }
+#define CHECKRC(rc) if (rc != mips::STATUS_OK) { raise(SIGTRAP); goto error_egress; }
 
 #define CHECKCALL(f) { rc = f; CHECKRC(rc); }
 
@@ -30,6 +30,11 @@ enum status_t {
     STATUS_ILLADDR,		/* segmentation fault?? */
     STATUS_ILLSYSCALL,
     STATUS_UNIMPLEMENTED,
+
+    STATUS_MEMFAULT,		// a "physical" memory failure (ie. the RAM
+				// (virtual) device failed)
+
+    STATUS_FORMAT,		// binary format problem
 
     NUM_STATUS
 };

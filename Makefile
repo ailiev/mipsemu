@@ -8,7 +8,13 @@ LIBSRCS = status.cc \
 	os.cc mman.cc
 
 # this controls which memory implementation we use
-LIBSRCS += memory-impl-simple.o
+#LIBSRCS += memory-impl-simple.o
+
+LIBSRCS += memory-impl-ppirw.o
+# external libraries. they get added into LDLIBS in common.make
+LDLIBFILES	+= -lsfdl-card
+
+
 
 
 # SRCS = cpu-main.cc

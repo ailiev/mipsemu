@@ -27,7 +27,8 @@ typedef uint64_t dword_t;	// double word
 
 
 // the total dynamic memory, ie. heap + stack, in bytes
-const size_t DEFAULT_DYN_MEM_SIZE = 64 * (1<<10);
+const size_t DEFAULT_DYN_MEM_SIZE = 1 * (1<<10);
+// current graph: needs 12K
 
 
 
