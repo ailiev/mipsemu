@@ -5,7 +5,12 @@
 #include <sfdl-runtime/card/array.h>
 #include <pir/common/utils.h>
 #include <pir/common/sym_crypto.h>
+
+#if defined HAVE_OPENSSL
 #include <pir/common/openssl_crypto.h>
+#elif defined HAVE_4758_CRYPTO
+#include <pir/card/4758_sym_crypto.h>
+#endif
 
 #include <string.h>
 
@@ -49,9 +54,21 @@ status_t mem_impl_init (mem_impl_t * mem,
     CHECK_ALLOC ( impl, (priv_impl_t*) malloc (sizeof(priv_impl_t)) );
     
     TRY (
+	CryptoProviderFactory * prov_fact = NULL;
+
+#if defined HAVE_OPENSSL
+	prov_fact = new OpenSSLCryptProvFactory();
+#elif defined HAVE_4758_CRYPTO
+	prov_fact = new CryptProvFactory4758();
+#else
+	std::cerr << "PPIR/W RAM could not make a crypto provider factory"
+	<< std::endl;
+	ERREXIT (MEMFAULT);
+#endif
+
 	impl->ram = new pir::Array ("ORAM",
 				    std::make_pair (size/WORDSIZE, WORDSIZE),
-				    new OpenSSLCryptProvFactory());
+				    prov_fact);
 	);
 
 

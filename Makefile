@@ -8,11 +8,29 @@ LIBSRCS = status.cc \
 	os.cc mman.cc
 
 # this controls which memory implementation we use
-#LIBSRCS += memory-impl-simple.o
+# PPIRW_RAM := 1
 
-LIBSRCS += memory-impl-ppirw.o
+
+ifdef PPIRW_RAM
+	LIBSRCS += memory-impl-ppirw.o
 # external libraries. they get added into LDLIBS in common.make
-LDLIBFILES	+= -lsfdl-card
+	LDLIBFILES	+= -lsfdl-card
+else
+	LIBSRCS += memory-impl-simple.o
+endif
+
+
+# external libraries. they get added into LDLIBS in common.make
+LIBDIRS		+= $(LEEDS_LIB) .
+LDLIBFILES	+= -lcommon
+
+
+
+ifdef HAVE_4758_CRYPTO
+# need the main card library
+LDLIBFILES	+= -lcard
+endif
+
 
 
 
@@ -60,10 +78,6 @@ install: build
 	$(INSTALL) $(LIBFILE)	$(LEEDS_LIB)
 #	$(INSTALL) $(EXES)	$(LEEDS_BIN)
 
-
-# external libraries. they get added into LDLIBS in common.make
-LIBDIRS		+= $(LEEDS_LIB) .
-LDLIBFILES	+= -lcommon
 
 
 

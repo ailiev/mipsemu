@@ -26,3 +26,27 @@ enters the syscall number into v0 and executes 'syscall'. The MIPS setup is
 clean enough that the stack and parameter setup created for the mmap() call from
 do_mmap can be used direclty by the syscall.
 
+<date>Wed May 31 17:19:00 2006</date>
+
+syscall procedure:
+- after the actual call, control goes to the __unified_syscall label in
+  mips/unified.S
+- there, check for non-zero in $a3, if not, return (to syscall caller
+  presumably), without touching $v0.
+- if $a3 non-zero:
+  - store $v0 into the errno location,
+  - write -1 into $v0
+  - return to caller.
+
+Thus, a syscall implementation has to set $a3 to non-zero and $v0 to the errno
+to indicate an error; and to set $v0 to its normal return value on success.
+Seems also sensible to set $a3 to zero to make sure no error is flagged if $a3
+happened to be non-zero from before (eg. a 4th syscall argument).
+
+
+<date>Thu Jun  1 14:23:56 2006</date>
+
+How to get a nice trace of memory access addresses from the runmips log file, so
+we can see how close heap and stack got, and how much there is to spare:
+
+grep mips-mem: runmips.2  | sed -ne 's/^.* phys addr \(0x[0-9a-f]*\) .*$/\1/p' | xargs printf "%d\n" | sort -n | uniq > addresses.dat

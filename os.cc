@@ -37,6 +37,8 @@ status_t exec_syscall ()
 //    const uint32_t syscall_num_exit = __NR_exit;
 
     status_t rc = STATUS_OK;
+
+    ssize_t sysrc;
     
     uint32_t callnum = read_register (v0);
 
@@ -59,25 +61,47 @@ status_t exec_syscall ()
 	size_t count = read_register (a2);
 
 	LOG (Log::DEBUG, s_logger,
-	     "write fd " << fd << " @0x" << std::hex << buf_vaddr
-	     << ", " << std::dec << count << " bytes");
+	     "write fd " << fd << " @" << buf_vaddr
+	     << ", " << count << " bytes");
 
-	ssize_t rc;
-	
 	CHECK_ALLOC ( buf, (byte*) malloc (count) );
 	
-	CHECKCALL ( mem_read_bytes (&g_mainmem,
-				    buf_vaddr,
-				    buf, count) );
+	rc = mem_read_bytes (&g_mainmem,
+			     buf_vaddr,
+			     buf, count);
+	if (rc != STATUS_OK)
+	{
+	    switch (rc) {
+	    case STATUS_ILLADDR:
+		// report out-of-range access to caller and continue.
+		write_register (a3, static_cast<uint32_t> (-1));
+		write_register (v0, EFAULT);
+		goto egress;
+	    default:
+		goto error_egress;
+	    }
+	}
+
 
 	{
 	    char begin[] = "MIPS: syscall write-->";
 	    write (fd, begin, sizeof(begin)-1);
 	}
 
-	rc = ::write (fd, buf , count);
-	write_register (v0, rc);
+	sysrc = ::write (fd, buf , count);
 
+	if (sysrc < 0)
+	{
+	    // error
+	    write_register (v0, errno);
+	    write_register (a3, -1);
+	}
+	else
+	{
+	    write_register (v0, sysrc);
+	    write_register (a3, 0);
+	}
+	
 	{
 	    char end[] = "<-- end write\n";
 	    write (fd, end, sizeof(end)-1);
@@ -85,6 +109,49 @@ status_t exec_syscall ()
 
 	break;
     }
+
+    case __NR_read:
+    {
+	int fd = read_register (a0);
+	addr_t buf_vaddr = read_register (a1);
+	size_t count = read_register (a2);
+
+	LOG (Log::DEBUG, s_logger,
+	     "read fd " << fd << " @" << buf_vaddr
+	     << ", " << count << " bytes");
+
+	CHECK_ALLOC ( buf, (byte*) malloc (count) );
+
+	sysrc = ::read (fd, buf, count);
+	
+	if (sysrc < 0)
+	{
+	    write_register (v0, errno);
+	    write_register (a3, static_cast<uint32_t>(sysrc));
+	    break;
+	}
+
+	rc = mem_write_bytes (&g_mainmem,
+			      buf_vaddr,
+			      buf, count);
+	if (rc != STATUS_OK)
+	{
+	    switch (rc) {
+	    case STATUS_ILLADDR:
+		// report out-of-range access to caller and continue.
+		write_register (v0, EFAULT);
+		write_register (a3, -1);
+		goto egress;
+	    default:
+		goto error_egress;
+	    }
+	}
+
+	write_register (v0, sysrc);
+	write_register (a3, 0);	// to make sure __unified_syscall does not flag
+				// a failed syscall
+	break;
+    }	
 
     case __NR_mmap:
 	CHECKCALL ( do_mmap () );
@@ -100,8 +167,13 @@ status_t exec_syscall ()
     }
 
  error_egress:
-// egress:
+
+ egress:
     if (buf) free (buf);
+
+    // TODO: do the register setting stuff in here rather than in all the
+    // handlers.
+    
     return rc;
 }
 

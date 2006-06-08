@@ -103,11 +103,19 @@ status_t run_process (mem_t * mem,
 	memset (&instr, 0, sizeof(instr));
 	CHECKCALL (decode_instruction (instr_code,
 				       &instr));
+#ifdef gcc_4x
 	LOG (Log::DEBUG, s_logger,
 	     "pc = 0x" << std::hex << pc_val
 	     << "; instr code = 0x"
 	     << std::hex << std::setw(8) << std::setfill('0') << instr_code
 	     << "; decoded: " << instr);
+#else
+	LOG (Log::DEBUG, s_logger,
+	     "pc = " << pc_val
+	     << "; instr code = "
+	     << instr_code
+	     << "; decoded: " << instr);
+#endif	
 
 	CHECKCALL (execute_instruction (&instr));
     }
@@ -162,7 +170,7 @@ status_t write_argv (mem_t * mem,
 	    );
 
 	LOG (Log::DEBUG, s_logger,
-	     "argv[" << i << "] at vaddr 0x" << std::hex << vaddr);
+	     "argv[" << i << "] at vaddr " << vaddr);
     }
 
     // vaddr now points to start of the value argv[0]
@@ -186,7 +194,11 @@ status_t write_argv (mem_t * mem,
 	vaddr -= 4;
 	CHECKCALL ( mem_write (mem, vaddr, argv_vaddrs[i]) );
 	LOG (Log::DEBUG, s_logger,
-	     "&argv[" << i << "] at vaddr 0x" << std::hex << vaddr);
+	     "&argv[" << i << "] at vaddr "
+#ifdef gcc_4x
+	     << "0x" << std::hex
+#endif
+	     << vaddr);
     }
 
 
@@ -196,7 +208,11 @@ status_t write_argv (mem_t * mem,
     CHECKCALL ( mem_write (mem, vaddr, argc) );
     
     LOG (Log::DEBUG, s_logger,
-	 "argc at vaddr 0x" << std::hex << vaddr);
+	 "argc at vaddr "
+#ifdef gcc_40
+	 << "0x" << std::hex
+#endif
+	 << vaddr);
 
     
 
@@ -239,9 +255,11 @@ status_t execute_instruction (instruction_t * instr)
 	rc = exec_arith (instr);
 	break;
     case mips_instr_info::load:
+	LOG (Log::DEBUG, s_logger, "memory access: load");
 	rc = exec_load (instr);
 	break;
     case mips_instr_info::store:
+	LOG (Log::DEBUG, s_logger, "memory access: store");
 	rc = exec_store (instr);
 	break;
     case mips_instr_info::branch:
@@ -413,7 +431,11 @@ status_t exec_load (instruction_t * instr)
 	SIGNEXTEND_WORD(instr->operands[1], 16, 32);
 
     LOG (Log::DEBUG, s_logger,
-	 "loading from address 0x" << std::hex << address);
+	 "loading from address "
+#ifdef gcc_40
+	 << "0x" << std::hex
+#endif
+	 << address);
     
     uint32_t val;
 
@@ -622,7 +644,10 @@ void prepare_inputs (uint32_t instr, instruction_t * o_instr)
     }
 
     LOG (Log::DEBUG, s_logger,
-	 "operand vals (hex): " << std::hex
+	 "operand vals: "
+#ifdef gcc_40
+	 << "(hex) " << std::hex
+#endif
 	 << o_instr->operands[0] << ", "
 	 << o_instr->operands[1] << ", "
 	 << o_instr->operands[2]);

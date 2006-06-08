@@ -48,6 +48,8 @@ status_t mem_impl_read (mem_impl_t * mem,
 {
     priv_impl_t * impl = static_cast<priv_impl_t*> (mem->priv_impl);
 
+    // NOTE: the caller should have checked for out-of-bounds access, and
+    // signalled to his caller.
     assert (addr + len <= mem->size);
     
     memcpy (o_buf, impl->ram + addr, len);
@@ -61,6 +63,7 @@ status_t mem_impl_write (mem_impl_t * mem,
 {
     priv_impl_t * impl = static_cast<priv_impl_t*> (mem->priv_impl);
 
+    // NOTE: the caller should have checked for out-of-bounds access.
     assert (addr + len <= mem->size);
     
     memcpy (impl->ram + addr, buf, len);

@@ -73,8 +73,8 @@ status_t mem_write (mem_t * mem,
     
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
     LOG (Log::DEBUG, s_logger,
-	 "mem_write phys addr 0x" << std::hex << addr
-	 << " len = " << std::dec << read_size);
+	 "mem_write phys addr " << addr
+	 << " len = " << read_size);
 
     if (addr + read_size > mem->size) ERREXIT(ILLADDR);
 
@@ -94,10 +94,11 @@ status_t mem_write_bytes (mem_t * mem,
     phys_addr_t addr;
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
     LOG (Log::DEBUG, s_logger,
-	 "mem_write_bytes phys addr 0x" << std::hex << addr
-	 << " len = " << std::dec << len);
+	 "mem_write_bytes phys addr " << addr
+	 << " len = " << len);
 
-    if (addr + len > mem->size) ERREXIT(ILLADDR);
+    // addr+len-1 is the largest index we're writing to
+    if (addr+len-1 >= mem->size) ERREXIT(ILLADDR);
     
     CHECKCALL ( mem_impl_write (&mem->impl, addr, buf, len) );
 
@@ -115,8 +116,8 @@ status_t mem_read_bytes (mem_t * mem,
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
 
     LOG (Log::DEBUG, s_logger,
-	 "mem_read_bytes phys addr 0x" << std::hex << addr
-	 << " len = " << std::dec << len);
+	 "mem_read_bytes phys addr " << addr
+	 << " len = " << len);
 
     if (addr + len > mem->size) ERREXIT(ILLADDR);
     
@@ -146,7 +147,11 @@ status_t mem_read (mem_t * mem,
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
 
     LOG (Log::DEBUG, s_logger,
-	 "mem_read phys addr 0x" << std::hex << addr);
+	 "mem_read phys addr "
+#ifdef gcc_4x
+	 "0x" << std::hex
+#endif
+	 << addr);
 
     if (addr + read_size > mem->size) ERREXIT(ILLADDR);
 
