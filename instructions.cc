@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "instructions.h"
 
 #include <pir/common/utils-macros.h>
