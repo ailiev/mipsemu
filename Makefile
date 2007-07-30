@@ -1,71 +1,82 @@
-PIR = ../pir
+include config.make
 
-include $(PIR)/utils.make
-include $(PIR)/header.make
+include $(SHARED_DIR)/utils.make
+include $(SHARED_DIR)/header.make
 
 LIBSRCS = status.cc \
 	instructions.cc cpu.cc alu.cc memory.cc \
-	os.cc mman.cc
-
-# this controls which memory implementation we use
-# PPIRW_RAM := 1
+	os.cc mman.cc bfd.c
 
 
+ifeq "$(LINKING)" "static"
+
+	CPPFLAGS += -DSTATIC_LINK
+
+# need to have a memory impl specified here!
 ifdef PPIRW_RAM
-	LIBSRCS += memory-impl-ppirw.o
-# external libraries. they get added into LDLIBS in common.make
-	LDLIBFILES	+= -lsfdl-card
+	# fetch RAM impl from the ORAM module.
+	LDLIBFILES += -lmemory-impl-ppirw
 else
-	LIBSRCS += memory-impl-simple.o
+	# just use our simple impl.
+	LIBSRCS += memory-impl-simple.cc
+endif
+
+
+else
+	CPPFLAGS += -DDYNAMIC_LINK
+	LDLIBFILES += -ldl
 endif
 
 
 # external libraries. they get added into LDLIBS in common.make
-LIBDIRS		+= $(LEEDS_LIB) .
-LDLIBFILES	+= -lcommon
+LIBDIRS		+= $(DIST_LIB) .
+LDLIBFILES	+= -lcommon -lbfd
 
 
 
-ifdef HAVE_4758_CRYPTO
-# need the main card library
-LDLIBFILES	+= -lcard
-endif
+TESTSRCS=$(wildcard test-*.cc test-*.c)
 
-
-
-
-
-# SRCS = cpu-main.cc
-
-TESTSRCS=$(wildcard test-*.cc)
 
 LIB = mips
-EXES = 
+EXES = runmips
 
-# needs dietlibc/syscall.h
-os.o : CPPFLAGS += -I$(HOME)/work/src/crossgcc
+MEMIMPLS = simple
+MEMIMPLS_LIBS = $(patsubst %,libmemory-impl-%.$(LIBEXT),$(MEMIMPLS))
+
+# needs dietlibc/mips/syscall.h
+os.o : CPPFLAGS += -I$(DIETLIBC_DIR)
 
 # for header files within pir, which include other pir headers without the pir/
 # prefix
-CPPFLAGS += -I$(PIR)
+# currently this is needed just for the logging code, we have no other
+# dependencies on PIR here.
+CPPFLAGS += -I$(SHARED_DIR)
+
 
 
 #
 # this section is pretty generic
 #
-LIBFILE = lib$(LIB).$(LIBEXT)
+LIBFILE = $(patsubst %,lib%.$(LIBEXT),$(LIB))
 
-TARGETS=$(LIBFILE) $(EXES)
+TARGETS=$(LIBFILE) $(EXES) $(MEMIMPLS_LIBS)
 
 all: build
 
-lib$(LIB).so: $(LIBOBJS)
+libmemory-impl-%.so: memory-impl-%.o
 	$(CXXLINK)
-lib$(LIB).a: $(LIBOBJS)
-	ar -ru $@ $^
+libmemory-impl-%.a: memory-impl-%.o
+	$(AR_CMD)
 
 
--l$(LIB): $(LIBFILE)
+$(LIBFILE): $(LIBOBJS)
+	$(CXXLINK)
+
+#lib$(LIB).a: $(LIBOBJS)
+#	$(AR_CMD)
+
+
+# -l$(LIB): $(LIBFILE)
 
 build: $(TARGETS)
 #
@@ -73,12 +84,14 @@ build: $(TARGETS)
 #
 
 
+runmips: $(LIBOBJS) runmips.o
+	$(CXXLINK)
+
 install: build
 #	strip $(EXES)
-	$(INSTALL) $(LIBFILE)	$(LEEDS_LIB)
-#	$(INSTALL) $(EXES)	$(LEEDS_BIN)
-
-
+	$(INSTALL) $(LIBFILE)	$(DIST_LIB)
+	$(INSTALL) $(MEMIMPLS_LIBS) $(DIST_LIB)
+	$(INSTALL) $(EXES)	$(DIST_BIN)
 
 
 
@@ -87,4 +100,4 @@ $(TESTEXES): $(LIBOBJS)
 tests: $(TESTEXES)
 
 
-include $(PIR)/footer.make
+include $(SHARED_DIR)/footer.make

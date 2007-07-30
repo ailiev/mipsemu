@@ -1,14 +1,25 @@
-CC:=gcc
+# -*- makefile -*-
 
-dietdir=$(HOME)/work/src/crossgcc/dietlibc
+# this reading of MAKEFILE_LIST has to be done before any other files are
+# include-d!
+this_file := $(lastword $(MAKEFILE_LIST))
+this_dir := $(dir $(realpath $(this_file)))
 
-diet = $(dietdir)/bin-i386/diet
+# include our local config.make
+include $(this_dir)/config.make
+
+base_cc := gcc
+
+diet = $(DIETLIBC_DIR)/bin-i386/diet
 #diet = diet
 arch=mipsel
 cross=$(arch)-linux-
 
-CC:=$(diet) $(cross)$(CC)
-LD:=$(cross)$(LD)
+DIETMIPSCC=$(diet) $(cross)$(base_cc)
+MIPSLD=$(cross)$(LD)
+
+CC:=$(DIETMIPSCC)
+LD:=$(MIPSLD)
 
 # cflags from the dietlibc MIPS makefile
 # note especially the -fno-pic, which is how dietlibc on MIPS is compiled.
@@ -16,10 +27,10 @@ CFLAGS += -G 0 -fstrict-aliasing -fno-pic -mno-abicalls
 
 CFLAGS += -Os
 
-CPPFLAGS += -I$(dietdir)/include
+CPPFLAGS += -I$(DIETLIBC_DIR)/include
 LDFLAGS += -static
 
-VPATH = $(dietdir)/bin-$(ARCH)
+VPATH = $(DIETLIBC_DIR)/bin-$(ARCH)
 
 %.s : CFLAGS += -fverbose-asm
 
@@ -28,4 +39,3 @@ VPATH = $(dietdir)/bin-$(ARCH)
 
 %.exe.s: %
 	mipsel-linux-objdump -d $< > $@
-

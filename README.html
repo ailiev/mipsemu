@@ -1,0 +1,108 @@
+<html>
+<head>
+<link href="../shared/style.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+<h1>MIPS Emulator</h1>
+
+This is a simple MIPS emulator, which can run programs written in C and:
+<ul>
+  <li>compiled with the GNU toolchain (<code>gcc</code>, <code>binutils</code>) targeting little-endian MIPS, and</li>
+  <li>linked statically with a MIPS build of <code>dietlibc</code>
+</ul>
+
+<p>
+
+Apart from intergration with existing toolchains, the emulator features a pluggable RAM implementation.
+<p>
+Its main purpose is to build a prototype Oblivious RAM system, by plugging in a RAM implementation which implements an oblivious RAM algorithm.
+
+
+<h2>Compiling MIPS executables</h2>
+
+<h3>Prerequisites</h3>
+
+<ul>
+  <li> A cross-compilation toolchain targeting MIPS. A skeleton is set up in
+  <code>BASEDIR/src/crossgcc/</code>. The README file there shows how to download the sources for a
+  gcc-based toolkit, and build it. The executables (compiler, linker, assembler
+  etc.) must be installed somewhere in the PATH.
+
+  <li> A <em>dietlibc</em> installation. The sources for this are in the local source
+  repository, but <code>BASEDIR/src/crossgcc/download.sh</code> includes a command to update to
+  latest CVS of dietlibc. The build instructions are together with those for the
+  cross-compilation toolchain above, in
+<code>BASEDIR/src/crossgcc/README</code>.
+
+  </ul>
+
+  <h3>Make utilities</h3>
+  
+ The makefile <code>mips-shared.make</code> has rules for compiling and
+linking C files
+  using the cross-compilation tools and dietlibc. Include it into your own
+  makefile, and just specify some object files to compile (without an explicit
+  compile command) and the executable to link, using the <code>$(LD)</code> (linker) variable
+  exported by mips-shared.make. This is illustrated in the sample
+  <code>play/Makefile</code>.
+
+
+<h2>Using the emulator</h2>
+
+Once the MIPS program is compiled, run it using <code>runmips</code>. The first
+parameter must be the MIPS ELF executable to run. Most of the remaining parameters are
+passed to the MIPS program.
+<p>
+
+  <h3>RAM implementations</h3>
+
+  The emulator has two ways to configure a RAM implementation.
+  <p>
+  If using dynamic linking, the implementation is specified by a command line parameter <code>-m</code>, eg:
+  <pre>
+$ runmips -m libmemory-impl-simple.so mipsexe
+</pre>
+<p>
+  If dynamic linking is not available, eg. when running the MIPS emulator in the
+4758 secure coprocessor, the RAM impl can be selected at compilation, and linked
+together with the emulator. The Makefile describes how to do this. In this case,
+there is no need to supply a RAM impl parameter when running, and it will be ignored if given.
+  <p>
+  Two RAM implementations are available currently:
+  
+  <ul>
+    <li> <code>libmemory-impl-simple.so</code> which implements the RAM as a simple byte array
+      on the native host.
+    <li><code>libmemory-impl-ppirw.so</code> which is produced by the ORAM module (see <a href="../oram/README.html" >README</a>) and implements the RAM using the Oblivious RAM /
+      PIR/W algorithm from our PIR.W system.
+    <p>
+    This requires the standard PIR/W
+      setup, where the MIPS emulated CPU is in the secure coprocessor, and it
+      uses a server (card_server) running on the host for storage of bulk data.
+      See <a href="../sfdl-runtime/README.html">Circuit virtual machine
+README</a> for details on this setup.
+
+    </li>
+  </ul>
+  
+
+<h2>Sample programs</h2>
+Look inside the <code>play/</code> directory.
+
+  <h2>Limitations</h2>
+
+  Fairly few syscalls are supported. Currently supported are:
+  <ul>
+    <li><code>mmap(2)</code>, which enables use of <code>malloc</code> etc.</li>
+
+    <li><code>read(2)</code> and <code>write(2)</code>, which allow quite
+flexible I/O, including <code>printf</code> if the code-size overhead is
+acceptable. This is limited to the console for now, as <code>open(2)</code> is
+not implemented.</li>
+
+</ul>
+  
+</body>
+</html>
+

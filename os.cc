@@ -9,7 +9,7 @@
 #include <pir/common/logging.h>
 
 // this is a MIPS OS!
-#include <dietlibc/mips/syscalls.h>
+#include <mips/syscalls.h>
 
 //#include <sys/mman.h>		// for MAP_FAILED
 
@@ -21,8 +21,7 @@ MIPS_OPEN_NS
 
 
 namespace {
-    Log::logger_t s_logger = Log::makeLogger ("mips-syscall",
-					      boost::none, boost::none);
+    Log::logger_t s_logger = Log::makeLogger ("mips.syscall");
 }
 
 

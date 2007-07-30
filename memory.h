@@ -70,7 +70,10 @@ struct mem_t {
 };
 
 
-status_t mem_init (mem_t * mem,
+/// Initialize the memory represented by o_mem.
+/// Use the memory implementation indicated by mem_impl_file.
+status_t mem_init (const char* mem_impl_file,
+		   mem_t * o_mem,
 		   size_t size,
 		   addr_t textstart,
 		   size_t textsize,

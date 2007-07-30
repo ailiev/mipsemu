@@ -5,7 +5,7 @@
 
 
 int mydiv (int x, int y) {
-    x = x / 10;
+    x = x / y;
 
     return x;
 }

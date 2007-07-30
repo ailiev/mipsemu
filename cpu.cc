@@ -51,8 +51,7 @@ namespace {
 
 
 namespace {
-    Log::logger_t s_logger = Log::makeLogger ("mips-cpu",
-					      boost::none, boost::none);
+    Log::logger_t s_logger = Log::makeLogger ("mips.cpu");
 }
 
 
