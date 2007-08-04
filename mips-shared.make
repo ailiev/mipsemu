@@ -10,7 +10,7 @@ include $(this_dir)/config.make
 
 base_cc := gcc
 
-diet = $(DIETLIBC_DIR)/bin-i386/diet
+diet = $(DIETLIBC_DIR)/bin/diet
 #diet = diet
 arch=mipsel
 cross=$(arch)-linux-
@@ -30,7 +30,7 @@ CFLAGS += -Os
 CPPFLAGS += -I$(DIETLIBC_DIR)/include
 LDFLAGS += -static
 
-VPATH = $(DIETLIBC_DIR)/bin-$(ARCH)
+# VPATH = $(DIETLIBC_DIR)/bin-$(ARCH)
 
 %.s : CFLAGS += -fverbose-asm
 

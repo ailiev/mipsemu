@@ -43,7 +43,7 @@ EXES = runmips
 MEMIMPLS = simple
 MEMIMPLS_LIBS = $(patsubst %,libmemory-impl-%.$(LIBEXT),$(MEMIMPLS))
 
-# needs dietlibc/mips/syscall.h
+# os.cc needs mips/syscalls.h
 os.o : CPPFLAGS += -I$(DIETLIBC_DIR)
 
 # for header files within pir, which include other pir headers without the pir/
