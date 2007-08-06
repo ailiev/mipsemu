@@ -27,28 +27,26 @@ See <a href="INSTALL.html" >INSTALL</a>.
 <h3>Prerequisites</h3>
 
 <ul>
-  <li> A cross-compilation toolchain targeting MIPS. A skeleton is set up in
-  <code>BASEDIR/src/crossgcc/</code>. The README file there shows how to download the sources for a
-  gcc-based toolkit, and build it. The executables (compiler, linker, assembler
-  etc.) must be installed somewhere in the PATH.
 
-  <li> A <em>dietlibc</em> installation. The sources for this are in the local source
-  repository, but <code>BASEDIR/src/crossgcc/download.sh</code> includes a command to update to
-  latest CVS of dietlibc. The build instructions are together with those for the
-  cross-compilation toolchain above, in
-<code>BASEDIR/src/crossgcc/README</code>.
+  <li> A cross-compilation toolchain targeting MIPS. A skeleton is set up in
+  <code>BASEDIR/src/crossgcc/</code>. The README file there points to the script
+  to download the sources for a gcc-based toolkit, and build it. Don't forget to
+  add the directory with the executables (compiler, linker, assembler etc.) to
+  the PATH.
+
+  <li> A <em>dietlibc</em> installation, which is built and installed as part of
+  the cross-compilation toolkit above.
 
   </ul>
 
   <h3>Make utilities</h3>
   
- The makefile <code>mips-shared.make</code> has rules for compiling and
-linking C files
-  using the cross-compilation tools and dietlibc. Include it into your own
-  makefile, and just specify some object files to compile (without an explicit
-  compile command) and the executable to link, using the <code>$(LD)</code> (linker) variable
-  exported by mips-shared.make. This is illustrated in the sample
-  <code>play/Makefile</code>.
+ The makefile <code>mips-shared.make</code> has rules for compiling and linking
+C files using the cross-compilation tools and dietlibc. Include it into your own
+makefile, and just specify some object files to compile (without an explicit
+compile command) and the executable to link, using the <code>$(LD)</code>
+(linker) variable exported by mips-shared.make. This is illustrated in the
+sample <code>play/Makefile</code>.
 
 
 <h2>Using the emulator</h2>

@@ -15,7 +15,8 @@
 
 #include <errno.h>
 
-#include <iostream>
+#include <string>
+
 
 MIPS_OPEN_NS
 
@@ -48,9 +49,10 @@ status_t exec_syscall ()
     {
 	// read out the exit code, treat as a signed int
 	int32_t exitcode = read_register (a0);
-	std::cout << "MIPS Process exited with code " << exitcode << std::endl;
+	LOG (Log::INFO, s_logger,
+	     "MIPS Process exited with code " << exitcode);
 	// and we exit ourselves...
-	exit (EXIT_SUCCESS);
+	exit (exitcode);
 	break;
     }
     case __NR_write:
@@ -83,8 +85,10 @@ status_t exec_syscall ()
 
 
 	{
-	    char begin[] = "MIPS: syscall write-->";
-	    write (fd, begin, sizeof(begin)-1);
+	    // cast from byte* to char*
+	    std::string s (reinterpret_cast<char*>(buf), count);
+	    LOG (Log::INFO, s_logger,
+		 "syscall write-->" << s << "<--");
 	}
 
 	sysrc = ::write (fd, buf , count);
@@ -101,11 +105,6 @@ status_t exec_syscall ()
 	    write_register (a3, 0);
 	}
 	
-	{
-	    char end[] = "<-- end write\n";
-	    write (fd, end, sizeof(end)-1);
-	}
-
 	break;
     }
 

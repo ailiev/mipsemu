@@ -24,14 +24,19 @@ bfd * open_bfd (const char* execfile)
     ibfd = bfd_openr (execfile, BFD_TARGET);
     if (ibfd == NULL)
     {
-	bfd_perror ("bfd_openr");
+	char buf[1024];
+	snprintf (buf, sizeof(buf),
+		  "Error opening executable %s", execfile);
+	// in case snprintf did not do this.
+	buf[sizeof(buf)-1] = '\0';
+	bfd_perror (buf);
 	goto error_egress;
     }
 
     // make sure it's an object (or executable) file
     if (! bfd_check_format (ibfd, bfd_object))
     {
-	bfd_perror ("binary format match failure");
+	bfd_perror ("binary file not an executable");
 	goto error_egress;
     }
 

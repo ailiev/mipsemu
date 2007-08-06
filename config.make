@@ -10,7 +10,7 @@ DIETLIBC_DIR = $(HOME)/work/minime/cross/mipsel-linux
 SHARED_DIR = ../pir
 
 # use the same installation dir as PIR etc.
-DIST_ROOT = $(LEEDS_ROOT)
+DIST_ROOT ?= $(LEEDS_ROOT)
 
 ##############################
 # in case we need to decide the memory impl at compile time (ie. if dynamic
