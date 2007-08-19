@@ -46,7 +46,7 @@ C files using the cross-compilation tools and dietlibc. Include it into your own
 makefile, and just specify some object files to compile (without an explicit
 compile command) and the executable to link, using the <code>$(LD)</code>
 (linker) variable exported by mips-shared.make. This is illustrated in the
-sample <code>play/Makefile</code>.
+sample <code>samples/Makefile</code>.
 
 
 <h2>Using the emulator</h2>
@@ -89,7 +89,7 @@ README</a> for details on this setup.
   
 
 <h2>Sample programs</h2>
-Look inside the <code>play/</code> directory.
+Look inside the <code>samples/</code> directory.
 
   <h2>Limitations</h2>
 
@@ -99,8 +99,9 @@ Look inside the <code>play/</code> directory.
 
     <li><code>read(2)</code> and <code>write(2)</code>, which allow quite
 flexible I/O, including <code>printf</code> if the code-size overhead is
-acceptable. This is limited to the console for now, as <code>open(2)</code> is
-not implemented.</li>
+acceptable and stdio functions are linked in. This is limited to the console for
+now, as <code>open(2)</code> is not implemented. (In fact other file descriptors
+can be accessed if they are open in the emulator.)</li>
 
 </ul>
   
