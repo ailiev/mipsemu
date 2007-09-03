@@ -27,6 +27,9 @@ else
 	LDLIBFILES += -ldl
 endif
 
+# pick up (links to) some system headers from this dir. In order to avoid the
+# compiler finding some ancient versions in /usr/local/include/
+CPPFLAGS += -Isystem-headers
 
 # external libraries. they get added into LDLIBS in common.make
 LIBDIRS		+= $(DIST_LIB) .

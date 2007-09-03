@@ -22,41 +22,14 @@ Its main purpose is to build a prototype Oblivious RAM system, by plugging in a 
 See <a href="INSTALL.html" >INSTALL</a>.
 
 
-<h2>Compiling MIPS executables</h2>
-
-<h3>Prerequisites</h3>
-
-<ul>
-
-  <li> A cross-compilation toolchain targeting MIPS. A skeleton is set up in
-  <code>BASEDIR/src/crossgcc/</code>. The README file there points to the script
-  to download the sources for a gcc-based toolkit, and build it. Don't forget to
-  add the directory with the executables (compiler, linker, assembler etc.) to
-  the PATH.
-
-  <li> A <em>dietlibc</em> installation, which is built and installed as part of
-  the cross-compilation toolkit above.
-
-  </ul>
-
-  <h3>Make utilities</h3>
-  
- The makefile <code>mips-shared.make</code> has rules for compiling and linking
-C files using the cross-compilation tools and dietlibc. Include it into your own
-makefile, and just specify some object files to compile (without an explicit
-compile command) and the executable to link, using the <code>$(LD)</code>
-(linker) variable exported by mips-shared.make. This is illustrated in the
-sample <code>samples/Makefile</code>.
-
 
 <h2>Using the emulator</h2>
 
-Once the MIPS program is compiled, run it using <code>runmips</code>. The first
-parameter must be the MIPS ELF executable to run. Most of the remaining parameters are
-passed to the MIPS program.
-<p>
+Once a MIPS program is compiled (see below), run it using <code>runmips</code>.
+The first parameter must be the MIPS ELF executable to run. Most of the
+remaining parameters are passed to the MIPS program.
 
-  <h3>RAM implementations</h3>
+<h3>RAM implementations</h3>
 
   The emulator has two ways to configure a RAM implementation.
   <p>
@@ -87,6 +60,37 @@ README</a> for details on this setup.
     </li>
   </ul>
   
+<h2>Compiling MIPS executables</h2>
+
+  <a name="compiling"></a>
+  
+  <h3>Prerequisites</h3>
+  
+  <ul>
+
+  <li> A cross-compilation toolchain targeting MIPS. A skeleton is set up in
+  <code>BASEDIR/src/crossgcc/</code>. The README file there points to the script
+  to download the sources for a gcc-based toolkit, and build it. Don't forget to
+  add the directory with the executables (compiler, linker, assembler etc.) to
+  the PATH. This can be done by running:
+  <pre>eval `make printenv`</pre>
+  in the root Faerieplay dirctory, after the cross-compilation toolkit
+  <code>env.sh</code> file is set up.
+
+  <li> A <em>dietlibc</em> installation, which is built and installed as part of
+  the cross-compilation toolkit above.
+
+  </ul>
+
+  <h3>Make utilities</h3>
+  
+ The makefile <code>mips-shared.make</code> has rules for compiling and linking
+C files using the cross-compilation tools and dietlibc. Include it into your own
+makefile, and just specify some object files to compile (without an explicit
+compile command) and the executable to link, using the <code>$(LD)</code>
+(linker) variable exported by mips-shared.make. This is illustrated in the
+sample <code>samples/Makefile</code>.
+
 
 <h2>Sample programs</h2>
 Look inside the <code>samples/</code> directory.
