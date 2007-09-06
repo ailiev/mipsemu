@@ -3,6 +3,9 @@ include config.make
 include $(SHARED_DIR)/utils.make
 include $(SHARED_DIR)/header.make
 
+CPPFLAGS += -I../shared/system-override/include
+
+
 LIBSRCS = status.cc \
 	instructions.cc cpu.cc alu.cc memory.cc \
 	os.cc mman.cc bfd.c
@@ -33,7 +36,7 @@ CPPFLAGS += -Isystem-headers
 
 # external libraries. they get added into LDLIBS in common.make
 LIBDIRS		+= $(DIST_LIB) .
-LDLIBFILES	+= -lcommon -lbfd
+LDLIBFILES	+= -lcommon -lbfd -liberty
 
 
 
