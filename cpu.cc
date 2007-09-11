@@ -86,14 +86,14 @@ status_t run_process (mem_t * mem,
 {
     status_t rc = STATUS_OK;
     
-    write_register (pc, start_addr);
+    write_register (static_cast<register_id>(pc), start_addr);
     
     // presumably an exit syscall will exit this process too.
     while (true)
     {
 	uint32_t instr_code;
 	instruction_t instr;
-	addr_t pc_val = read_register (pc);
+	addr_t pc_val = read_register (static_cast<register_id>(pc));
 	
 	CHECKCALL (mem_read (mem,
 			     pc_val,
@@ -233,20 +233,20 @@ status_t execute_instruction (instruction_t * instr)
     // for the debugger mostly
     addr_t pc_val;
 
-    pc_val = read_register(pc);
+    pc_val = read_register(static_cast<register_id>(pc));
     
     mips_instr_info * info = g_instr_info + instr->name;
 
     {
 	// update the PC, either with the next instruction in line, or with the
 	// target of a branch/jump executed last
-	addr_t br_target_val = read_register(br_target);
-	write_register (pc,
+	addr_t br_target_val = read_register(static_cast<register_id>(br_target));
+	write_register (static_cast<register_id>(pc),
 			br_target_val == 0 ?
-			read_register(pc) + 4 :
+			read_register(static_cast<register_id>(pc)) + 4 :
 			br_target_val);
 	// reset br_target
-	write_register (br_target, 0);
+	write_register (static_cast<register_id>(br_target), 0);
     }
 
     switch (info->instr_type) {
@@ -321,7 +321,7 @@ status_t exec_branch (instruction_t * instr)
     mips_instr_info * info = g_instr_info + instr->name;
     
 
-    addr_t pc_val = read_register (pc);
+    addr_t pc_val = read_register (static_cast<register_id>(pc));
 
     switch (instr->name) {
 	// these comparisons are fine unsigned
@@ -363,7 +363,7 @@ status_t exec_branch (instruction_t * instr)
 	    pc_val
 	    + SIGNEXTEND (instr->operands[2] << 2, 18, 32);
 
-	write_register (br_target, target);
+	write_register (static_cast<register_id>(br_target), target);
     }
 
     
@@ -384,7 +384,7 @@ status_t exec_jump (instruction_t * instr)
     
     // the target address is in words, so multiply by 4 to get byte address
     // the high 4 bits come from the PC
-    addr_t pc_val = read_register(pc);
+    addr_t pc_val = read_register(static_cast<register_id>(pc));
     
     uint32_t target;
 
@@ -409,7 +409,7 @@ status_t exec_jump (instruction_t * instr)
 	// ERROR!
     }
     
-    write_register (br_target, target);
+    write_register (static_cast<register_id>(br_target), target);
 
     if (g_instr_info[instr->name].should_link) {
 	// keep in mind that pc now points to the *next* instruction to execute
@@ -531,20 +531,20 @@ status_t exec_move (instruction_t * instr)
 	break;
 
     case mflo:
-	src = lo;
+	src = static_cast<register_id>(lo);
 	dest = instr->destreg;
 	break;
     case mfhi:
-	src = hi;
+	src = static_cast<register_id>(hi);
 	dest = instr->destreg;
 	break;
     case mtlo:
 	src = instr->inregs[0];
-	dest = lo;
+	dest = static_cast<register_id>(lo);
 	break;
     case mthi:
 	src = instr->inregs[0];
-	dest = hi;
+	dest = static_cast<register_id>(hi);
 	break;
 
     case movn:
@@ -889,10 +889,10 @@ const char* register_name (register_id reg_num)
 	{ fp, "fp" },
 	{ ra, "ra" },
 
-	{ pc, "pc" },
-	{ br_target, "br_target" },
-	{ lo, "lo" },			
-	{ hi, "hi" }
+	{ static_cast<register_id>(pc), "pc" },
+	{ static_cast<register_id>(br_target), "br_target" },
+	{ static_cast<register_id>(lo), "lo" },			
+	{ static_cast<register_id>(hi), "hi" }
     };
 
 
