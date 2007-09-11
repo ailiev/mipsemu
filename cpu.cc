@@ -65,7 +65,7 @@ status_t prepare_cpu (mem_t * mem,
     
     memset (s_regs, 0, sizeof(s_regs));
     
-    s_regs[zero]    = 0;		// make this explicit
+    s_regs[0]    = 0;		// make this explicit
 
 
     CHECKCALL ( write_argv (mem, argc, argv, &argc_addr) );
@@ -856,7 +856,7 @@ const char* register_name (register_id reg_num)
     };
     
     static reg_info_t reg_infos[] = {
-	{ zero, "zero" },
+	// { zero, "zero" },
 	{ at, "at" },
 	{ v0, "v0" },
 	{ v1, "v1" },

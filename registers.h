@@ -14,8 +14,8 @@ MIPS_OPEN_NS
 
 
     enum register_id {
-	zero = 0,
-	at,
+//	zero = 0,
+	at = 1,
 	v0,
 	v1,
 	a0,
