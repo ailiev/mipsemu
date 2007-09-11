@@ -65,7 +65,7 @@ status_t prepare_cpu (mem_t * mem,
     
     memset (s_regs, 0, sizeof(s_regs));
     
-    s_regs[0]    = 0;		// make this explicit
+    s_regs[zero]    = 0;		// make this explicit
 
 
     CHECKCALL ( write_argv (mem, argc, argv, &argc_addr) );
@@ -667,7 +667,11 @@ void get_register_nums (uint32_t instr, instruction_t * o_instr)
 		"sizeof(fields)=" << sizeof(fields)
 		<< "; sizeof(instr)=" << sizeof(instr));
 		
-    assert (sizeof(fields) == sizeof(instr));
+    // FIXME: this was failing on tahoe (Fedora core 6), as sizeof(fields)
+    // was 5. Seems to work without equality of sizes - need to figure out
+    // the story.
+	// NOPE, no work.
+	assert (sizeof(fields) == sizeof(instr));
     memcpy (&fields, &instr, sizeof(instr));
 
     // the input registers, however many there are
@@ -856,7 +860,7 @@ const char* register_name (register_id reg_num)
     };
     
     static reg_info_t reg_infos[] = {
-	// { zero, "zero" },
+	{ zero, "zero" },
 	{ at, "at" },
 	{ v0, "v0" },
 	{ v1, "v1" },
