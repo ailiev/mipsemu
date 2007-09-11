@@ -45,9 +45,11 @@ MIPS_OPEN_NS
 	gp,
 	sp,
 	fp,
-	ra,
+	ra
+    };
 
-	pc,			// program counter
+enum special_regs {
+	pc = ra + 1,		// program counter
 
 	br_target,		// branch target, set by a successful branch
 				// instruction, to be branched to after the next
