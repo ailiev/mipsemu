@@ -663,6 +663,10 @@ void get_register_nums (uint32_t instr, instruction_t * o_instr)
     assert (info->name == o_instr->name);
 
     // set up a type_R_syntax to access the bit-fields inside 'instr' easily.
+	LOG (Log::DEBUG, s_logger,
+		"sizeof(fields)=" << sizeof(fields)
+		<< "; sizeof(instr)=" << sizeof(instr));
+		
     assert (sizeof(fields) == sizeof(instr));
     memcpy (&fields, &instr, sizeof(instr));
 
