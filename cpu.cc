@@ -662,17 +662,7 @@ void get_register_nums (uint32_t instr, instruction_t * o_instr)
 
     assert (info->name == o_instr->name);
 
-    // set up a type_R_syntax to access the bit-fields inside 'instr' easily.
-	LOG (Log::DEBUG, s_logger,
-		"sizeof(fields)=" << sizeof(fields)
-		<< "; sizeof(instr)=" << sizeof(instr));
-		
-    // FIXME: this was failing on tahoe (Fedora core 6), as sizeof(fields)
-    // was 5. Seems to work without equality of sizes - need to figure out
-    // the story.
-	// NOPE, no work.
-	assert (sizeof(fields) == sizeof(instr));
-    memcpy (&fields, &instr, sizeof(instr));
+    fields = decode_R_instr (instr);
 
     // the input registers, however many there are
     switch (info->num_ops) {

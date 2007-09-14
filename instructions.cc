@@ -274,6 +274,62 @@ void init_instr_info ()
 };
 
 
+type_R_syntax decode_R_instr (uint32_t instr)
+{
+    type_R_syntax answer;
+
+#define _set_instr_field(field,type,i,j) answer.field = static_cast<type> (GETBITS (instr, i, j))
+
+    _set_instr_field (opcode, byte, 0, 5);
+    
+    _set_instr_field (rs, register_id, 6, 10);
+    _set_instr_field (rt, register_id, 11, 15);
+    _set_instr_field (rd, register_id, 16, 20);
+
+    _set_instr_field (shamt, byte, 21, 25);
+    _set_instr_field (funct, byte, 26, 31);
+
+#undef _set_instr_field
+
+    return answer;
+}
+
+
+type_I_syntax decode_I_instr (uint32_t instr)
+{
+    type_I_syntax answer;
+
+#define _set_instr_field(field,type,i,j) answer.field = static_cast<type> (GETBITS (instr, i, j))
+
+    _set_instr_field (opcode, byte, 0, 5);
+    
+    _set_instr_field (rs, register_id, 6, 10);
+    _set_instr_field (rt, register_id, 11, 15);
+
+    _set_instr_field (imm, uint16_t, 16, 31);
+
+#undef _set_instr_field
+
+    return answer;
+}
+
+
+type_J_syntax decode_J_instr (uint32_t instr)
+{
+    type_J_syntax answer;
+
+#define _set_instr_field(field,i,j) answer.field = GETBITS (instr, i, j)
+
+    _set_instr_field (opcode, 0, 5);
+    
+    _set_instr_field (addr, 6, 31);
+
+#undef _set_instr_field
+
+    return answer;
+}
+
+
 std::ostream& operator<< (std::ostream& os, const instruction_t & instr)
 {
     mips_instr_info * info = g_instr_info + instr.name;

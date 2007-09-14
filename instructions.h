@@ -208,6 +208,9 @@ struct instruction_t {
 				// 0)
 };
 
+
+type_R_syntax decode_R_instr (uint32_t instr);
+
 std::ostream& operator<< (std::ostream& os, mips_instr_name name);
 
 std::ostream& operator<< (std::ostream& os, const instruction_t & instr);
