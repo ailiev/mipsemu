@@ -151,32 +151,32 @@ void init_instr_info ();
 // reverse.
 struct type_R_syntax
 {
-    byte funct	    : 6;	// 
-    byte shamt	    : 5;	// this field is only used as part of a 16-bit
+    byte funct;	// 
+    byte shamt;	// this field is only used as part of a 16-bit
 				// immediate, or in shift instructions
-    register_id rd  : 5;
-    register_id rt  : 5;
-    register_id rs  : 5;
+    register_id rd;
+    register_id rt;
+    register_id rs;
 
-    byte opcode	    : 6;
-}  __attribute__((__packed__));
+    byte opcode;
+};
 
 // and where a 16-bit immediate is involved:
 struct type_I_syntax
 {
-    uint16_t imm    : 16;
+    uint16_t imm;
 
-    register_id rt  : 5;
-    register_id rs  : 5;
+    register_id rt;
+    register_id rs;
 
-    byte opcode	    : 6;
-} __attribute__((__packed__));
+    byte opcode;
+};
 
 struct type_J_syntax
 {
-    uint32_t addr   : 26;
-    byte opcode	    : 6;
-} __attribute__((__packed__));
+    uint32_t addr;
+    byte opcode;
+};
 
 
 

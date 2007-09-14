@@ -272,6 +272,9 @@ status_t virt2phys_addr (const mem_t * mem,
     if (full_addr < mem->text_start ||
 	GETBIT(full_addr, mem_t::KERNEL_DETECT_BIT) == 1)
     {
+	LOG (Log::ERROR, s_logger,
+	     "Invalid virtual address " << full_addr);
+	
 	// too high or too low!
 	ERREXIT (ILLADDR);
     }
