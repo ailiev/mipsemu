@@ -718,6 +718,7 @@ mips_instr_name decode_instr_name (uint32_t instr)
     // as a 'sll'. Since nop is quite common, use a special test up front.
     if (instr == 0U) return nop;
     
+    // FIXME: this duplicates code in decode_R_instr.
     byte opcode = GETBITS (instr, 26, 31);
 
 //     LOG (Log::DUMP, s_logger,
@@ -818,6 +819,7 @@ mips_instr_name decode_0_opcode (uint32_t instr)
 
 mips_instr_name decode_1_opcode (uint32_t instr)
 {
+    // FIXME: duplicates decode_R_instr
     byte rt = GETBITS (instr, 16, 20);
     LOG (Log::DEBUG, s_logger,
 	 "rt = " << (unsigned)rt);

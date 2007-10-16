@@ -278,16 +278,18 @@ type_R_syntax decode_R_instr (uint32_t instr)
 {
     type_R_syntax answer;
 
+    // WARNING: this only works on little-endian for now.
+    
 #define _set_instr_field(field,type,i,j) answer.field = static_cast<type> (GETBITS (instr, i, j))
 
-    _set_instr_field (opcode, byte, 0, 5);
+    _set_instr_field (opcode, byte, 26, 31);
     
-    _set_instr_field (rs, register_id, 6, 10);
-    _set_instr_field (rt, register_id, 11, 15);
-    _set_instr_field (rd, register_id, 16, 20);
+    _set_instr_field (rs, register_id, 21, 25);
+    _set_instr_field (rt, register_id, 16, 20);
+    _set_instr_field (rd, register_id, 11, 15);
 
-    _set_instr_field (shamt, byte, 21, 25);
-    _set_instr_field (funct, byte, 26, 31);
+    _set_instr_field (shamt, byte, 6, 10);
+    _set_instr_field (funct, byte, 0, 5);
 
 #undef _set_instr_field
 
@@ -295,6 +297,7 @@ type_R_syntax decode_R_instr (uint32_t instr)
 }
 
 
+#if 0
 type_I_syntax decode_I_instr (uint32_t instr)
 {
     type_I_syntax answer;
@@ -328,6 +331,7 @@ type_J_syntax decode_J_instr (uint32_t instr)
 
     return answer;
 }
+#endif
 
 
 std::ostream& operator<< (std::ostream& os, const instruction_t & instr)
