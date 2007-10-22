@@ -59,6 +59,8 @@ os.o : CPPFLAGS += -I$(DIETLIBC_DIR)
 CPPFLAGS += -I$(SHARED_DIR)
 
 
+# dietlibc MIPS header mips/syscalls.h, used in os.cc
+os.cc : CPPFLAGS += $(DIETLIBC_DIR)
 
 #
 # this section is pretty generic

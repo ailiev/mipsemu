@@ -9,6 +9,7 @@ this_dir := $(dir $(realpath $(this_file)))
 # "operating system") and for compiling MIPS executables, using
 # mips-shared.make.
 # Fetch it from the canonical source: env.sh
+SHELL:=/bin/bash
 DIETLIBC_DIR = $(shell source $(this_dir)/../src/crossgcc/build/mipsel/env.sh && echo $$rootdir/$$target)
 
 $(debug DIETLIBC_DIR = $(DIETLIBC_DIR))
