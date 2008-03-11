@@ -12,7 +12,6 @@
  *
 */
 
-
 #include "mybfd.h"
 
 #include <mips/cpu.h>
@@ -100,58 +99,35 @@ int main (int argc, char * argv[])
 
     size_t memsize;
     
-    Elf * elf;
-    
-    Elf_Scn
-	*temp_scn = NULL,
+    asection
 	*text = NULL,
 	*rodata = NULL,
 	*data = NULL,
 	*bss = NULL;
-
-
-    Elf32_Shdr * shdr;
-
-
-
-    if (elf_version(EV_CURRENT) == EV_NONE ) {
-	/* library out of date */
-	fprintf(stderr, "Elf library out of date!n");
-	exit(-1);
-    }
     
+
+
+    bfd_init();
+
     mips::init_instr_info();
-
+    
+    
     //
-    // open the elf file.
+    // open the bfd
     //
-    int elf_fd = open (execfile, O_RDONLY);
-    if (elf_fd == -1) goto error_egress;
+    ibfd = open_bfd (execfile);
+    if (ibfd == NULL) goto error_egress;
 
-    /*
-     print_section (ibfd, ".text");
-     printf ("\n\n");
-     print_section (ibfd, ".data");
-     printf ("\n\n");
-     print_section (ibfd, ".bss");
-     printf ("\n\n");
-     print_section (ibfd, ".rodata");
-    */
+//     print_section (ibfd, ".text");
+//     printf ("\n\n");
+//     print_section (ibfd, ".data");
+//     printf ("\n\n");
+//     print_section (ibfd, ".bss");
+//     printf ("\n\n");
+//     print_section (ibfd, ".rodata");
+    
     
 
-    temp_scn = 0;
-    while ( (temp_scn = elf_nextscn(elf, temp_scn)) != NULL)
-    {
-	shdr = elf32_getshdr (temp_scn);
-	if (shdr == NULL) {
-	    print_elf_errs ();
-	    goto error_egress;
-	}
-
-	
-    }
-
- 
 #define get_section(name)					\
     name = bfd_get_section_by_name (ibfd, "." #name);		\
     if (name == NULL) BFD_FATAL ("Getting ." #name " section");
