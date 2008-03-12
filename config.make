@@ -10,12 +10,21 @@ this_dir := $(dir $(realpath $(this_file)))
 # mips-shared.make.
 # Fetch it from the canonical source: env.sh
 SHELL:=/bin/bash
-DIETLIBC_DIR = $(shell source $(this_dir)/../src/crossgcc/build/mipsel/env.sh && echo $$rootdir/$$target)
+env_loc = $(this_dir)/../src/crossgcc/build/mipsel/env.sh
+ifeq "$(realpath $(env_loc))" ""
+$(error Could not find the cross-tools env.sh, expected at $(env_loc))
+endif
+
+DIETLIBC_DIR = $(shell source $(env_loc) && echo $$rootdir/$$target)
 
 $(debug DIETLIBC_DIR = $(DIETLIBC_DIR))
 
 # where the shared directory is, with shared build files.
 SHARED_DIR = $(realpath $(this_dir)/../pir)
+
+ifeq "$(SHARED_DIR)" ""
+$(error Could not find SHARED_DIR, please check that $(this_dir)/../pir exists)
+endif
 
 # use the same installation dir as PIR etc.
 DIST_ROOT ?= $(LEEDS_ROOT)

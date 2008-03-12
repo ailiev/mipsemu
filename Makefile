@@ -13,7 +13,7 @@ ifeq "$(LINKING)" "static"
 
 	CPPFLAGS += -DSTATIC_LINK
 
-# need to have a memory impl specified here!
+# need to have a memory impl specified here, if we are static-linking!
 ifdef PPIRW_RAM
 	# fetch RAM impl from the ORAM module.
 	LDLIBFILES += -lmemory-impl-ppirw
