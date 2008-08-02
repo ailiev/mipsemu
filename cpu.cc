@@ -102,6 +102,8 @@ status_t run_process (mem_t * mem,
     status_t rc = STATUS_OK;
     
     write_register (static_cast<register_id>(pc), start_addr);
+
+    size_t count = 0;
     
     // presumably an exit syscall will exit this process too.
     while (true)
@@ -132,6 +134,13 @@ status_t run_process (mem_t * mem,
 #endif	
 
 	CHECKCALL (execute_instruction (&instr));
+
+	if (count % 1000 == 0) {
+	    LOG (Log::INFO, s_logger,
+		 "Executed instruction number " << count);
+	}
+
+	++count;
     }
 
  error_egress:

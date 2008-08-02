@@ -53,7 +53,7 @@ there is no need to supply a RAM impl parameter when running, and it will be ign
     <p>
     This requires the standard PIR/W
       setup, where the MIPS emulated CPU is in the secure coprocessor, and it
-      uses a server (card_server) running on the host for storage of bulk data.
+    uses a server (<code>card_server</code>) running on the host for storage of bulk data.
       See <a href="../sfdl-runtime/README.html">Circuit virtual machine
 README</a> for details on this setup.
 
@@ -99,7 +99,7 @@ Look inside the <code>samples/</code> directory.
 
   Fairly few syscalls are supported. Currently supported are:
   <ul>
-    <li><code>mmap(2)</code>, which enables use of <code>malloc</code> etc.</li>
+    <li>A subset of <code>mmap(2)</code>, which enables use of <code>malloc</code> etc.</li>
 
     <li><code>read(2)</code> and <code>write(2)</code>, which allow quite
 flexible I/O, including <code>printf</code> if the code-size overhead is
