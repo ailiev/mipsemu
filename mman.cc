@@ -19,6 +19,8 @@
 
 #include <pir/common/utils-macros.h>
 
+#include <string.h>
+
 
 MIPS_OPEN_NS
 

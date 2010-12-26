@@ -27,7 +27,7 @@
 #include <pir/common/utils-macros.h>
 #include <pir/common/logging.h>
 
-#include <stdint.h>
+#include <string.h>
 
 
 MIPS_OPEN_NS
