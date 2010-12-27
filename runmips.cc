@@ -95,7 +95,7 @@ int main (int argc, char * argv[])
 
     byte * buf = NULL;
 
-    size_t rodata_size;
+    size_t data_size, rodata_size;
 
     size_t memsize;
     
@@ -135,13 +135,22 @@ int main (int argc, char * argv[])
     // it seems that these three sections are always present, even if zero-sized
     // (mostly the data section can be zero size, if there are no globals)
     get_section (text);
-    get_section (data);
+//    get_section (data);
     get_section (bss);
 
 #undef get_section
 
     LOG (Log::INFO, s_logger,
 	 "Text section size = " << bfd_section_size (ibfd, text) << " bytes");
+
+    // .data section may not be present
+    data = bfd_get_section_by_name (ibfd, ".data");
+    if (data != NULL) {
+	data_size = bfd_section_size (ibfd, data);
+    }
+    else {
+	data_size = 0;
+    }
 
     // .rodata section may not be present
     rodata = bfd_get_section_by_name (ibfd, ".rodata");
@@ -162,7 +171,7 @@ int main (int argc, char * argv[])
 	memsize =
 	    bfd_section_size (ibfd,text)
 	    + rodata_size
-	    + bfd_section_size (ibfd,data)
+	    + data_size
 	    + bfd_section_size (ibfd,bss)
 	    + mips::DEFAULT_DYN_MEM_SIZE;
 
@@ -179,7 +188,7 @@ int main (int argc, char * argv[])
 	memsize,
 	text->vma,
 	bfd_section_size (ibfd,text) + rodata_size, // text size (incl. rodata)
-	bfd_section_size (ibfd,data) + bfd_section_size (ibfd,bss)	// static data size
+	data_size + bfd_section_size (ibfd,bss)	// static data size
 	);
     
     // copy text and data sections into new memory
@@ -189,7 +198,7 @@ int main (int argc, char * argv[])
 
 	assert (bfd_section_size (ibfd,text)  <= BUFSIZE 	&&
 		rodata_size <= BUFSIZE 	&&
-		bfd_section_size (ibfd,data)  <= BUFSIZE);
+		data_size  <= BUFSIZE);
 	
 	CHECK_ALLOC ( buf, (byte*) malloc (BUFSIZE) );
 
@@ -225,19 +234,19 @@ int main (int argc, char * argv[])
 	    
 	}
 
-	// data section
-	
-	rc = bfd_get_section_contents (ibfd,
-				       data,
-				       buf,
-				       0, bfd_section_size (ibfd,data));
-	if (!rc) BFD_FATAL ("Reading in data section");
+	// data section if present
+	if (data != NULL) {
+            rc = bfd_get_section_contents (ibfd,
+                                           data,
+                                           buf,
+                                           0, bfd_section_size (ibfd,data));
+            if (!rc) BFD_FATAL ("Reading in data section");
 
-	CHECKCALL ( mips::mem_write_bytes (&mips::g_mainmem,
-					   data->vma,
-					   buf, bfd_section_size (ibfd,data)) );
+            CHECKCALL ( mips::mem_write_bytes (&mips::g_mainmem,
+                                               data->vma,
+                                               buf, bfd_section_size (ibfd,data)) );
+        }
 
-	
     }
 
     // prepare the heap
@@ -271,7 +280,10 @@ int main (int argc, char * argv[])
     
     CHECKCALL ( mips::prepare_cpu (&mips::g_mainmem,
 				   argc, argv) );
-    
+
+    LOG (Log::INFO, s_logger,
+	 "CPU ready, argv and argc on stack, starting main function");
+
     CHECKCALL ( mips::run_process (&mips::g_mainmem, start_addr) );
 
     goto egress;
