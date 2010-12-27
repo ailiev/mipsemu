@@ -25,7 +25,7 @@ LD:=$(MIPSLD)
 # note especially the -fno-pic, which is how dietlibc on MIPS is compiled.
 CFLAGS += -G 0 -fstrict-aliasing -fno-pic -mno-abicalls
 
-CFLAGS += -Os
+#CFLAGS += -Os
 
 CPPFLAGS += -I$(DIETLIBC_DIR)/include
 LDFLAGS += -static
