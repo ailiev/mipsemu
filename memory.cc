@@ -33,6 +33,7 @@
 
 #include <string.h>
 
+#include <iomanip>
 
 
 MIPS_OPEN_NS
@@ -154,7 +155,13 @@ status_t mem_init (const char* mem_impl_file,
     mem->textsize = textsize;
     mem->static_data_size = static_data_size;
     
- error_egress:
+    LOG(Log::INFO, s_logger,
+        std::hex
+        << "Memory layout: text start=0x" << textstart
+        << ", text end / static data start=0x" << textstart+textsize
+        << ", static data end=0x" << textstart+textsize+static_data_size);
+
+error_egress:
 
     return rc;
 }
@@ -182,6 +189,9 @@ status_t mem_write (mem_t * mem,
 	ERREXIT (ALIGN);
     }
     
+    LOG (Log::DEBUG, s_logger,
+	 "mem_write virt addr 0x" << std::hex << vaddr << std::dec
+	 << " len = " << read_size);
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
     LOG (Log::DEBUG, s_logger,
 	 "mem_write phys addr " << addr
