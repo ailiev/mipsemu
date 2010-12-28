@@ -20,8 +20,8 @@
 #include "status.h"
 #include "common.h"
 
-#include <pir/common/utils-macros.h>
-#include <pir/common/utils.h>	// writefile()
+#include <faerieplay/common/utils-macros.h>
+#include <faerieplay/common/utils.h>	// writefile()
 
 #ifdef DYNAMIC_LINK
 #include <dlfcn.h>		// dlopen() etc. these conform to POSIX.1-2001,

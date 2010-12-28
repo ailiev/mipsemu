@@ -17,7 +17,7 @@
 #include "common.h"
 #include "memory.h"
 
-#include <pir/common/utils-macros.h>
+#include <faerieplay/common/utils-macros.h>
 
 #include <string.h>
 

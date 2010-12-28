@@ -23,9 +23,9 @@
 #include "status.h"
 #include "common.h"
 
-#include <pir/common/utils-types.h>
-#include <pir/common/utils-macros.h>
-#include <pir/common/logging.h>
+#include <faerieplay/common/utils-types.h>
+#include <faerieplay/common/utils-macros.h>
+#include <faerieplay/common/logging.h>
 
 #include <string.h>
 

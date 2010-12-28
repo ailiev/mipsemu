@@ -21,7 +21,7 @@
 #include "common.h"
 #include "status.h"
 
-#include <pir/common/logging.h>
+#include <faerieplay/common/logging.h>
 
 // this is a MIPS OS!
 #include <mips/syscalls.h>

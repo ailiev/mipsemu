@@ -37,7 +37,7 @@ CPPFLAGS += -I../shared/system-override/include
 
 # external libraries. they get added into LDLIBS in common.make
 LIBDIRS		+= $(DIST_LIB) .
-LDLIBFILES	+= -lcommon -lbfd -liberty
+LDLIBFILES	+= -lfaerieplay-common -lbfd -liberty
 
 
 TESTSRCS=$(wildcard test-*.cc test-*.c)
@@ -48,6 +48,8 @@ EXES = runmips
 
 MEMIMPLS = simple
 MEMIMPLS_LIBS = $(patsubst %,libmemory-impl-%.$(LIBEXT),$(MEMIMPLS))
+
+EXTRA_INCLUDE_DIRS = $(DIST_ROOT)/include
 
 # os.cc needs mips/syscalls.h
 os.o : CPPFLAGS += -I$(DIETLIBC_DIR)

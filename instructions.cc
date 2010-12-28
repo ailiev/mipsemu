@@ -17,7 +17,7 @@
 
 #include "instructions.h"
 
-#include <pir/common/utils-macros.h>
+#include <faerieplay/common/utils-macros.h>
 
 MIPS_OPEN_NS
 

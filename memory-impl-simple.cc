@@ -15,7 +15,7 @@
 
 #include "memory-impl.h"
 
-#include <pir/common/utils.h>	// writefile()
+#include <faerieplay/common/utils.h>	// writefile()
 
 #include <string.h>
 

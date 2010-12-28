@@ -17,7 +17,7 @@
 #include "status.h"
 #include "common.h"
 
-#include <pir/common/utils-types.h>
+#include <faerieplay/common/utils-types.h>
 
 #include <stdint.h>
 #include <stddef.h>
