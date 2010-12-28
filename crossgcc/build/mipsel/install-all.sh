@@ -8,6 +8,21 @@ mkdir -p $rootdir
     mkdir binutils
     cd binutils
     sh ../conf-binutils
+
+    # Tinker the bintutils configure files to avoid a useless failure
+    # when checking result of ls -Lt or ls -t
+    for binutils_module in `cat ../fixup-configure-files`; do
+        file=../../../binutils-$binutils_version/$binutils_module/configure
+        ed $file <<EOF
+/.*ls -Lt/i
+    # Alex Iliev: do not do this check as it fails without reason on Ubuntu 9.10
+    # this exits just the ls -t test sub-shell
+    exit
+.
+wq
+EOF
+    done
+
     make
     make install
 )

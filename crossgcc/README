@@ -3,4 +3,4 @@ Configure the destination/install directory $rootdir in build/mipsel/env.sh
 Run install.sh to download, build, and install the mipsel (MIPS little-endian)
 toolchain.
 
-Add $rootdir/bin to the PATH.
+Add $rootdir/bin to your PATH.

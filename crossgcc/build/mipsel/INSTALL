@@ -2,7 +2,7 @@ Make sure you have obtained the binutils, gcc and dietlibc sources, using
 ../../download.sh.
 
 Edit env.sh to change the root installation directory if needed. The target
-should be fine as is.
+architecture should be fine as is.
 
 Run the install-all.sh script.
 

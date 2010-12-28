@@ -21,6 +21,13 @@ make prefix=$rootdir/$target
 make install prefix=$rootdir/$target
 # install -D bin-i386/diet $rootdir/$target/bin/diet
 
+# Tinker the makefile to avoid using a compile flag which the cross-gcc doesnt
+# understand ( -fno-stack-protector )
+ed Makefile <<EOF
+g/stackgap.c/s/-fno-stack-protector//
+wq
+EOF
+
 # and now the mipsel version
 make -f $thisdir/Makefile-dietlibc mipsel \
     prefix=$rootdir/$target

@@ -1,0 +1,7 @@
+binutils
+ld
+opcodes
+bfd
+gas
+gprof
+gold
