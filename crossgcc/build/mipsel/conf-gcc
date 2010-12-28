@@ -1,0 +1,9 @@
+. ../env.sh
+
+# if srcdir is relative, compensate for one more level of directory backup.
+grep -q '^/' $srcdir || srcdir=../$srcdir
+
+$srcdir/gcc-3.4.6/configure --target=$target --prefix=$rootdir/$target \
+	--with-gnu-as --with-gnu-ld --verbose --enable-languages=c \
+	--disable-nls --with-newlib --disable-threads --disable-shared \
+	--disable-multilib

@@ -1,0 +1,9 @@
+# -*- sh -*-
+
+. ../env.sh
+
+# if srcdir is relative, compensate for one more level of directory backup.
+grep -q '^/' $srcdir || srcdir=../$srcdir
+
+$srcdir/binutils-2.20.1/configure --target=$target \
+    --prefix=$rootdir/$target --disable-nls

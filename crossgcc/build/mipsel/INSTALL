@@ -1,0 +1,27 @@
+Make sure you have obtained the binutils, gcc and dietlibc sources, using
+../../download.sh.
+
+Edit env.sh to change the root installation directory if needed. The target
+should be fine as is.
+
+Run the install-all.sh script.
+
+At the end, the mipsel-linux tools will be in $rootdir/
+
+
+If there are any problems, look into the install-all.sh and try the offending
+steps by hand.
+
+
+NOTE: Makefile-dietlibc is a slightly patched version of the dietlibs Makefile,
+to use the mipsel-linux cross compiler, and not the mips-linux one as they
+originally had:
+
+--- ../../dietlibc/Makefile     2006-03-02 14:34:29.000000000 -0500
++++ Makefile-dietlibc   2006-03-02 15:34:40.000000000 -0500
+@@ -397,4 +397,5 @@
+ # Cross compile for little endian MIPS
++# sasho: change CROSS from mips-linux
+ mipsel:
+-       $(MAKE) ARCH=$@ CROSS=mips-linux- all
++       $(MAKE) ARCH=$@ CROSS=mipsel-linux- all
