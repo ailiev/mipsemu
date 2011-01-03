@@ -14,14 +14,14 @@
 
 #include "mybfd.h"
 
-#include <mips/cpu.h>
-#include <mips/memory.h>
+#include "cpu.h"
+#include "memory.h"
 
-#include <mips/status.h>
-#include <mips/mman.h>
+#include "status.h"
+#include "mman.h"
 
-#include <pir/common/logging.h>
-#include <pir/common/utils.h>
+#include <faerieplay/common/logging.h>
+#include <faerieplay/common/utils.h>
 
 #include <bfd.h>
 
