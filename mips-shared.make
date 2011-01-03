@@ -34,8 +34,10 @@ LDFLAGS += -static
 
 %.s : CFLAGS += -fverbose-asm
 
+# The assembly output of gcc, before linking.
 %.s: %.c
 	$(CC) -S -o $@ $(CPPFLAGS) $(CFLAGS) $<
 
+# disassembled ASM file, exact representation of the running binary.
 %.exe.s: %
 	mipsel-linux-objdump -d $< > $@
