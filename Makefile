@@ -1,8 +1,9 @@
 include config.make
 
-include $(SHARED_DIR)/utils.make
-include $(SHARED_DIR)/header.make
+make_incl_dir=$(DIST_ROOT)/make_include/faerieplay/common
 
+include $(make_incl_dir)/utils.make
+include $(make_incl_dir)/header.make
 
 LIBSRCS = status.cc \
 	instructions.cc cpu.cc alu.cc memory.cc \
@@ -49,17 +50,8 @@ EXES = runmips
 MEMIMPLS = simple
 MEMIMPLS_LIBS = $(patsubst %,libmemory-impl-%.$(LIBEXT),$(MEMIMPLS))
 
-EXTRA_INCLUDE_DIRS = $(DIST_ROOT)/include
-
 # os.cc needs mips/syscalls.h
 os.o : CPPFLAGS += -I$(DIETLIBC_DIR)
-
-# for header files within pir, which include other pir headers without the pir/
-# prefix
-# currently this is needed just for the logging code, we have no other
-# dependencies on PIR here.
-CPPFLAGS += -I$(SHARED_DIR)
-
 
 # dietlibc MIPS header mips/syscalls.h, used in os.cc
 os.cc : CPPFLAGS += $(DIETLIBC_DIR)
@@ -110,4 +102,4 @@ $(TESTEXES): $(LIBOBJS)
 tests: $(TESTEXES)
 
 
-include $(SHARED_DIR)/footer.make
+include $(make_incl_dir)/footer.make
