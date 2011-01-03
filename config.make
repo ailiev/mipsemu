@@ -10,7 +10,7 @@ this_dir := $(dir $(realpath $(this_file)))
 # mips-shared.make.
 # Fetch it from the canonical source: env.sh
 SHELL:=/bin/bash
-env_loc = $(this_dir)/../src/crossgcc/build/mipsel/env.sh
+env_loc = $(this_dir)/crossgcc/build/mipsel/env.sh
 ifeq "$(realpath $(env_loc))" ""
 $(error Could not find the cross-tools env.sh, expected at $(env_loc))
 endif
