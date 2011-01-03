@@ -27,6 +27,7 @@
 
 #include <iostream>
 
+#include <string.h>
 
 // how to get a list of all the binary instructions in an executable:
 // mipsel-linux-objdump -d simple | pcregrep '^\s+(\d|[a-f])+:' | awk '{print $2}'

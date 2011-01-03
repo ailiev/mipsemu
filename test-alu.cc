@@ -24,9 +24,11 @@
 
 #include "alu.h"
 
-#include <pir/common/utils-macros.h>
+#include <faerieplay/common/utils-macros.h>
 
 #include <iostream>
+
+#include <stdlib.h>
 
 using namespace std;
 
