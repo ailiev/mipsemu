@@ -77,7 +77,7 @@ status_t exec_arith (instruction_t * instr)
 
     case nor:
 	// do as (not or)
-	result = ! (instr->operands[0] || instr->operands[1]);
+	result = ~ (instr->operands[0] | instr->operands[1]);
 	break;
 
     case mult:
