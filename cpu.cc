@@ -43,6 +43,13 @@ MIPS_OPEN_NS
 
 
 namespace {
+
+    struct reg_metadata_t
+    {
+        addr_t last_write_pc;
+        unsigned int version;
+    };
+
     status_t execute_instruction (instruction_t * instr);
     
     mips_instr_name decode_instr_name (uint32_t instr);
@@ -64,18 +71,23 @@ namespace {
     status_t write_argv (mem_t * mem,
 			 int argc, char * argv[],
 			 addr_t * o_argc_addr);    
-    
+
+    void log_dataflow (const mips_instr_info * info, const instruction_t * instr,
+                       const reg_metadata_t * source_regs_at_start);
 }
 
 
 
 namespace {
     register_file_t s_regs;
+
+    reg_metadata_t s_reg_metadata [NUMREGS];
 }
 
 
 namespace {
     Log::logger_t s_logger = Log::makeLogger ("mips.cpu");
+    Log::logger_t s_dataflow_logger = Log::makeLogger ("mips.dataflow");
 }
 
 
@@ -89,8 +101,9 @@ status_t prepare_cpu (mem_t * mem,
     
     memset (s_regs, 0, sizeof(s_regs));
     
-    s_regs[zero]    = 0;		// make this explicit
+    memset(s_reg_metadata, 0, sizeof(s_reg_metadata));
 
+    s_regs[zero]    = 0;		// make this explicit
 
     CHECKCALL ( write_argv (mem, argc, argv, &argc_addr) );
     
@@ -99,6 +112,7 @@ status_t prepare_cpu (mem_t * mem,
 
     // easier to load it up into a hex editor to have a look
     mem_dump (mem, "memory-at-start");
+
 
  error_egress:
     return rc;
@@ -110,7 +124,7 @@ status_t run_process (mem_t * mem,
 {
     status_t rc = STATUS_OK;
     
-    write_register (static_cast<register_id>(pc), start_addr);
+    write_register (static_cast<register_id>(pc), start_addr, start_addr);
 
     size_t count = 0;
     
@@ -127,20 +141,14 @@ status_t run_process (mem_t * mem,
 
 	memset (&instr, 0, sizeof(instr));
 	CHECKCALL (decode_instruction (instr_code,
-				       &instr));
-#ifdef gcc_4x
+				       &instr,
+                                       pc_val));
+
 	LOG (Log::DEBUG, s_logger,
 	     "pc = 0x" << std::hex << pc_val
 	     << "; instr code = 0x"
 	     << std::hex << std::setw(8) << std::setfill('0') << instr_code
 	     << "; decoded: " << instr);
-#else
-	LOG (Log::DEBUG, s_logger,
-	     "pc = " << pc_val
-	     << "; instr code = "
-	     << instr_code
-	     << "; decoded: " << instr);
-#endif	
 
 	CHECKCALL (execute_instruction (&instr));
 
@@ -158,9 +166,10 @@ status_t run_process (mem_t * mem,
 }
 				       
 
-status_t decode_instruction (uint32_t instr, instruction_t * o_instr)
+status_t decode_instruction (uint32_t instr, instruction_t * o_instr, uint32_t pc)
 {
     o_instr->code = instr;
+    o_instr->pc = pc;
     o_instr->name = decode_instr_name (instr);
     get_register_nums (instr, o_instr);
     prepare_inputs (instr, o_instr);
@@ -227,9 +236,7 @@ status_t write_argv (mem_t * mem,
 	CHECKCALL ( mem_write (mem, vaddr, argv_vaddrs[i]) );
 	LOG (Log::DEBUG, s_logger,
 	     "&argv[" << i << "] at vaddr "
-#ifdef gcc_4x
 	     << "0x" << std::hex
-#endif
 	     << vaddr);
     }
 
@@ -241,9 +248,7 @@ status_t write_argv (mem_t * mem,
     
     LOG (Log::DEBUG, s_logger,
 	 "argc at vaddr "
-#ifdef gcc_40
 	 << "0x" << std::hex
-#endif
 	 << vaddr);
 
     
@@ -270,6 +275,16 @@ status_t execute_instruction (instruction_t * instr)
     
     mips_instr_info * info = g_instr_info + instr->name;
 
+    reg_metadata_t source_regs_meta[2];
+    switch (info->num_ops) {
+    case 2:
+        source_regs_meta[1] = s_reg_metadata[instr->inregs[1]];
+        // fall through
+    case 1:
+        source_regs_meta[0] = s_reg_metadata[instr->inregs[0]];
+        break;
+    }
+
     {
 	// update the PC, either with the next instruction in line, or with the
 	// target of a branch/jump executed last
@@ -277,9 +292,10 @@ status_t execute_instruction (instruction_t * instr)
 	write_register (static_cast<register_id>(pc),
 			br_target_val == 0 ?
 			read_register(static_cast<register_id>(pc)) + 4 :
-			br_target_val);
+			br_target_val,
+                        instr->pc);
 	// reset br_target
-	write_register (static_cast<register_id>(br_target), 0);
+	write_register (static_cast<register_id>(br_target), 0, instr->pc);
     }
 
     switch (info->instr_type) {
@@ -319,12 +335,12 @@ status_t execute_instruction (instruction_t * instr)
 	rc = STATUS_OK;
 	break;
     case syscall:
-	rc = exec_syscall ();
+	rc = exec_syscall (instr->pc);
 	break;
     case lui:
     {
 	uint32_t val = (instr->operands[0] << 16) & 0xFFFF0000;
-	write_register (instr->destreg, val);
+	write_register (instr->destreg, val, instr->pc);
 	rc = STATUS_OK;
 	break;
     }
@@ -339,10 +355,62 @@ status_t execute_instruction (instruction_t * instr)
 	break;
     }
 
- error_egress:
+    log_dataflow(info, instr, source_regs_meta);
+
+error_egress:
     return rc;
 }
 
+
+void record_src_instr (const instruction_t * instr,
+                       register_id r_dest, uint32_t dest_val,
+                       register_id r_src,  const reg_metadata_t * r_src_meta)
+{
+    LOG(Log::INFO, s_dataflow_logger,
+        std::hex
+        << register_name (r_src) << "_" << r_src_meta->last_write_pc
+        << "_" << r_src_meta->version
+//                << "[label=\"" << instr->operands[0] << "\"]"
+        << " -> "
+        << register_name (r_dest) << "_" << instr->pc
+        << "_" << s_reg_metadata[r_dest].version
+        << "[label=\"" << instr->name << "->" << dest_val << "\"]");
+}
+
+/** called after the instruction has been executed, and the dest register
+    updated.
+*/
+void log_dataflow (const mips_instr_info * info, const instruction_t * instr,
+    const reg_metadata_t * source_regs_at_start)
+{
+    if (info->has_out) {
+        register_id r_dest = instr->destreg;
+        uint32_t dest_val = read_register(r_dest);
+
+        if (info->num_ops > 0) {
+            record_src_instr(instr,
+                             r_dest, dest_val,
+                             instr->inregs[0], source_regs_at_start);
+        }
+        if (info->num_ops > 1) {
+            record_src_instr(instr,
+                             r_dest, dest_val,
+                             instr->inregs[1], source_regs_at_start+1);
+        }
+        if (info->immed_type != mips_instr_info::none) {
+            // add a log of the immediate input
+            index_t immed_idx = info->num_ops;
+            uint32_t immed_val = instr->operands[immed_idx];
+            LOG(Log::INFO, s_dataflow_logger,
+                std::hex
+                << "I0x" << immed_val
+                << " -> "
+                << register_name (r_dest) << "_" << instr->pc
+                << "_" << s_reg_metadata[r_dest].version
+                << "[label=\"" << instr->name << "->" << dest_val << "\"]");
+        }
+    }
+}
 
 status_t exec_branch (instruction_t * instr)
 {
@@ -389,6 +457,8 @@ status_t exec_branch (instruction_t * instr)
 	
     if (should_branch) {
 
+        LOG (Log::DEBUG, s_logger, "Taking branch");
+
 	// the offset is always signed, and is in words, not bytes
 	// it is the third operand - the first two are the values to compare.
 	// NOTE: the offset should be from the delay slot address apparently.
@@ -396,7 +466,7 @@ status_t exec_branch (instruction_t * instr)
 	    pc_val
 	    + SIGNEXTEND (instr->operands[2] << 2, 18, 32);
 
-	write_register (static_cast<register_id>(br_target), target);
+	write_register (static_cast<register_id>(br_target), target, instr->pc);
     }
 
     
@@ -404,7 +474,7 @@ status_t exec_branch (instruction_t * instr)
 	// keep in mind that pc now points to the *next* instruction to execute
 	// (the delay slot), so after the branch should return to instr. after
 	// the PC (delay slot)
-	write_register (ra, pc_val+4);
+	write_register (ra, pc_val+4, instr->pc);
     }
 
     return STATUS_OK;
@@ -442,11 +512,11 @@ status_t exec_jump (instruction_t * instr)
 	// ERROR!
     }
     
-    write_register (static_cast<register_id>(br_target), target);
+    write_register (static_cast<register_id>(br_target), target, instr->pc);
 
     if (g_instr_info[instr->name].should_link) {
 	// keep in mind that pc now points to the *next* instruction to execute
-	write_register (ra, pc_val+4);
+	write_register (ra, pc_val+4, instr->pc);
     }
 
     return STATUS_OK;
@@ -464,10 +534,7 @@ status_t exec_load (instruction_t * instr)
 
     LOG (Log::DEBUG, s_logger,
 	 "loading from address "
-#ifdef gcc_40
-	 << "0x" << std::hex
-#endif
-	 << address);
+	 << "0x" << std::hex << address);
     
     uint32_t val;
 
@@ -508,7 +575,7 @@ status_t exec_load (instruction_t * instr)
 	break;
     }
 
-    write_register (instr->destreg, val);
+    write_register (instr->destreg, val, instr->pc);
 
  error_egress:
     return rc;
@@ -597,7 +664,7 @@ status_t exec_move (instruction_t * instr)
 
     if (should_move)
     {
-	write_register (dest, read_register (src));
+	write_register (dest, read_register (src), instr->pc);
     }
 
  error_egress:
@@ -940,10 +1007,12 @@ uint32_t read_register (register_id regid)
     return s_regs[regid];
 }
 
-void write_register (register_id regid, uint32_t val)
+void write_register (register_id regid, uint32_t val, uint32_t pc)
 {
 //    assert (regnum < ARRLEN(s_regs));
     s_regs[regid] = val;
+    s_reg_metadata[regid].last_write_pc = pc;
+    s_reg_metadata[regid].version++;
 }
 
 // std::ostream& dump_registers (std::ostream& os)

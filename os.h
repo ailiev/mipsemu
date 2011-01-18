@@ -25,13 +25,15 @@
 #include "common.h"
 #include "status.h"
 
+#include <stdint.h>
 
 #ifndef _SYSCALL_H
 #define _SYSCALL_H
 
 MIPS_OPEN_NS
 
-status_t exec_syscall ();
+/** Pass in the program counter for this instr for diagnostic use */
+status_t exec_syscall (uint32_t pc);
 
 CLOSE_NS
 

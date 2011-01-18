@@ -32,6 +32,11 @@
 
 #include <faerieplay/common/utils-macros.h>
 #include <faerieplay/common/utils.h>	// writefile()
+#include <faerieplay/common/countarray.hpp>
+
+#include <log4cpp/Category.hh>
+#include <log4cpp/Priority.hh>
+
 
 #ifdef DYNAMIC_LINK
 #include <dlfcn.h>		// dlopen() etc. these conform to POSIX.1-2001,
@@ -40,6 +45,8 @@
 				// linking of mem impl if dlopen() etc not
 				// supported.
 #endif
+
+#include <unistd.h>
 
 #include <string.h>
 
@@ -225,9 +232,14 @@ status_t mem_write_bytes (mem_t * mem,
     phys_addr_t addr;
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
     LOG (Log::DEBUG, s_logger,
-	 "mem_write_bytes phys addr " << addr
-	 << " len = " << len);
-
+	 "mem_write_bytes vaddr=0x" << std::hex << vaddr
+         << ", phys addr=0x" << addr
+	 << " len=" << std::dec << len);
+    if (len <= 4) {
+        LOG (Log::DEBUG, s_logger,
+             "mem_write_bytes bytes=" << ByteBuffer(buf, len, ByteBuffer::deepcopy()));
+    }
+    
     // addr+len-1 is the largest index we're writing to
     if (addr+len-1 >= mem->size) ERREXIT(ILLADDR);
     
@@ -247,14 +259,20 @@ status_t mem_read_bytes (mem_t * mem,
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
 
     LOG (Log::DEBUG, s_logger,
-	 "mem_read_bytes phys addr " << addr
-	 << " len = " << len);
+	 "mem_read_bytes vaddr=0x" << std::hex << vaddr
+         << ", phys addr=0x" << addr
+	 << " len=" << std::dec << len);
 
     if (addr + len > mem->size) ERREXIT(ILLADDR);
-    
+
     CHECKCALL ( mem_impl_read_ptr (&mem->impl, addr, o_buf, len) );
 
- error_egress:
+    if (len <= 4) {
+        LOG (Log::DEBUG, s_logger,
+             "mem_read_bytes bytes=" << ByteBuffer(o_buf, len, ByteBuffer::SHALLOW));
+    }
+
+error_egress:
     return rc;
 }
 
@@ -278,18 +296,18 @@ status_t mem_read (mem_t * mem,
     CHECKCALL ( virt2phys_addr (mem, vaddr, &addr) );
 
     LOG (Log::DEBUG, s_logger,
-	 "mem_read phys addr "
-#ifdef gcc_4x
-	 "0x" << std::hex
-#endif
-	 << addr);
+	 "mem_read word vaddr=0x" << std::hex << vaddr
+         << ", phys addr=0x" << addr);
 
     if (addr + read_size > mem->size) ERREXIT(ILLADDR);
 
     CHECKCALL ( mem_impl_read_ptr (&mem->impl, addr,
 				   reinterpret_cast<byte*>(o_val), read_size) );
 
- error_egress:
+    LOG (Log::DEBUG, s_logger,
+         "mem_read word=" << ByteBuffer(o_val, sizeof(word_t), ByteBuffer::SHALLOW));
+
+error_egress:
 
     return rc;
 }
@@ -308,9 +326,15 @@ status_t virt2phys_addr (const mem_t * mem,
 	GETBIT(full_addr, mem_t::KERNEL_DETECT_BIT) == 1)
     {
 	LOG (Log::ERROR, s_logger,
-	     "Invalid virtual address " << full_addr);
+	     "Invalid virtual address (before mem start or into kernel space) "
+             << "0x" << std::hex << full_addr);
 	
-	// too high or too low!
+        log4cpp::Appender::closeAll();
+        s_logger->getStream(log4cpp::Priority::INFO).flush();
+        s_logger->getStream(log4cpp::Priority::DEBUG).flush();
+        s_logger->getStream(log4cpp::Priority::ERROR).flush();
+
+        exit (21);
 	ERREXIT (ILLADDR);
     }
 

@@ -51,12 +51,12 @@ namespace {
 
 
 namespace {
-    status_t do_mmap ();
+    status_t do_mmap (uint32_t pc);
 }
 
 
 
-status_t exec_syscall ()
+status_t exec_syscall (uint32_t pc)
 {
 //    const uint32_t syscall_num_exit = __NR_exit;
 
@@ -99,8 +99,8 @@ status_t exec_syscall ()
 	    switch (rc) {
 	    case STATUS_ILLADDR:
 		// report out-of-range access to caller and continue.
-		write_register (a3, static_cast<uint32_t> (-1));
-		write_register (v0, EFAULT);
+		write_register (a3, static_cast<uint32_t> (-1), pc);
+		write_register (v0, EFAULT, pc);
 		goto egress;
 	    default:
 		goto error_egress;
@@ -120,13 +120,13 @@ status_t exec_syscall ()
 	if (sysrc < 0)
 	{
 	    // error
-	    write_register (v0, errno);
-	    write_register (a3, -1);
+	    write_register (v0, errno, pc);
+	    write_register (a3, -1, pc);
 	}
 	else
 	{
-	    write_register (v0, sysrc);
-	    write_register (a3, 0);
+	    write_register (v0, sysrc, pc);
+	    write_register (a3, 0, pc);
 	}
 	
 	break;
@@ -148,8 +148,8 @@ status_t exec_syscall ()
 	
 	if (sysrc < 0)
 	{
-	    write_register (v0, errno);
-	    write_register (a3, static_cast<uint32_t>(sysrc));
+	    write_register (v0, errno, pc);
+	    write_register (a3, static_cast<uint32_t>(sysrc), pc);
 	    break;
 	}
 
@@ -161,22 +161,22 @@ status_t exec_syscall ()
 	    switch (rc) {
 	    case STATUS_ILLADDR:
 		// report out-of-range access to caller and continue.
-		write_register (v0, EFAULT);
-		write_register (a3, -1);
+		write_register (v0, EFAULT, pc);
+		write_register (a3, -1, pc);
 		goto egress;
 	    default:
 		goto error_egress;
 	    }
 	}
 
-	write_register (v0, sysrc);
-	write_register (a3, 0);	// to make sure __unified_syscall does not flag
+	write_register (v0, sysrc, pc);
+	write_register (a3, 0, pc); // to make sure __unified_syscall does not flag
 				// a failed syscall
 	break;
     }	
 
     case __NR_mmap:
-	CHECKCALL ( do_mmap () );
+	CHECKCALL ( do_mmap (pc) );
 	break;
 
     case __NR_munmap:
@@ -204,7 +204,7 @@ status_t exec_syscall ()
 OPEN_ANON_NS
 
 
-status_t do_mmap ()
+status_t do_mmap (uint32_t pc)
 {
     status_t rc = STATUS_OK;
     
@@ -238,15 +238,15 @@ status_t do_mmap ()
 
     goto egress;
     
- error_egress:
-    write_register (a3, static_cast<uint32_t>(-1));	// MAP_FAILED is -1
-    write_register (v0, ENOMEM); 
+error_egress:
+    write_register (a3, static_cast<uint32_t>(-1), pc);	// MAP_FAILED is -1
+    write_register (v0, ENOMEM, pc); 
     return rc;
     
  egress:
-    write_register (v0, alloc_addr);
-    write_register (a3, 0);	// __unified_syscall looks for an error
-				// indication here!
+    write_register (v0, alloc_addr, pc);
+    write_register (a3, 0, pc);	// __unified_syscall looks for an error
+                                // indication here!
     return rc;
 }
 

@@ -92,26 +92,32 @@ status_t exec_arith (instruction_t * instr)
 	goto write_mult_result;
 	
     write_mult_result:
-	write_register (static_cast<register_id>(lo), GETBITS(result_64, 0, 31));
-	write_register (static_cast<register_id>(hi), GETBITS(result_64, 32, 63));
+	write_register (static_cast<register_id>(lo), GETBITS(result_64, 0, 31),
+                        instr->pc);
+	write_register (static_cast<register_id>(hi), GETBITS(result_64, 32, 63),
+                        instr->pc);
 
 	goto egress;		// we're not writing a destination register,
 				// just skip out
     
     case div:
-	write_register (static_cast<register_id>(lo), signed_act(/));
-	write_register (static_cast<register_id>(hi), signed_act(%));
+	write_register (static_cast<register_id>(lo), signed_act(/),
+                        instr->pc);
+	write_register (static_cast<register_id>(hi), signed_act(%),
+                        instr->pc);
 	goto egress;
     case divu:
-	write_register (static_cast<register_id>(lo), act(/));
-	write_register (static_cast<register_id>(hi), act(%));
+	write_register (static_cast<register_id>(lo), act(/),
+                        instr->pc);
+	write_register (static_cast<register_id>(hi), act(%),
+                        instr->pc);
 	goto egress;
 
     default:
 	break;
     }
 
-    write_register (instr->destreg, result);
+    write_register (instr->destreg, result, instr->pc);
 
     goto egress;
 

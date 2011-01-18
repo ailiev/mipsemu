@@ -206,6 +206,8 @@ struct type_J_syntax
 struct instruction_t {
     uint32_t code;
     
+    uint32_t pc;
+    
     mips_instr_name name;
 
     register_id inregs[2];	// up to two operand register numbers, 0-2
