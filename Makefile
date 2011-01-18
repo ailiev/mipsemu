@@ -4,6 +4,10 @@ make_incl_dir=$(DIST_ROOT)/make_include/faerieplay/common
 
 include $(make_incl_dir)/utils.make
 include $(make_incl_dir)/header.make
+include $(make_incl_dir)/shared-targets.make
+
+# no optimize
+CXXFLAGS:=-march=i586
 
 LIBSRCS = status.cc \
 	instructions.cc cpu.cc alu.cc memory.cc \
