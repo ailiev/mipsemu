@@ -13,17 +13,32 @@
 */
 
 
-/* test with a string constant in rodata section */
+/* test program to exercise strcat(3) */
 
 #include <unistd.h>
 #include <string.h>
 
+#include <faerieplay/common/utils-macros.h>
+
 int main ()
 {
-    const char msg[] = "the string constant goes into the rodata section. extra char:";
+    const char * msgs[] = {
+        "",
+        "123",
+        "1234",
+        "123456",
+        "12345678",
+        "123456789012345678901234567890123456789012" /* 42 chars */
+    };
 
-    write (1, msg, sizeof(msg));
-    write (1, msg+15, 1);      /* should be 't',from the middle of 'constant' */
-    write (1, "\n", 1);
+    int i;
+    char dest[128];
+
+    for (i=0; i < ARRLEN(msgs); ++i) {
+        strcat(dest, msgs[i]);
+        write (1, dest, strlen(dest));
+        write (1, "\n", 1);
+    }
+
     return 0;
 }
