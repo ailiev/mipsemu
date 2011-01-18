@@ -237,9 +237,16 @@ int main (int argc, char * argv[])
 
 	    // FIXME: is rodata->vma == text->vma + text->size ??
 	    // (ie. rodata vaddr is straight after text)
+            const size_t len = bfd_section_size (ibfd,rodata);
+            buf[len] = '\0';
+            LOG(Log::DEBUG, s_logger,
+                "Writing rodata:" << len << " bytes "
+                << " at addr 0x" << std::hex << rodata->vma
+                << ": " << buf)
+                ;
 	    CHECKCALL ( mips::mem_write_bytes (&mips::g_mainmem,
 					 rodata->vma,
-					 buf, bfd_section_size (ibfd,rodata)) );
+                                         buf, len) );
 	    
 	}
 
