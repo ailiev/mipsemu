@@ -5,7 +5,7 @@
 this_file := $(lastword $(MAKEFILE_LIST))
 this_dir := $(dir $(realpath $(this_file)))
 
-FAERIEPLAY_DIST_ROOT=$(HOME)/faerieplay
+FAERIEPLAY_DIST_ROOT ?= $(HOME)/faerieplay
 
 DIST_ROOT ?= $(FAERIEPLAY_DIST_ROOT)
 
