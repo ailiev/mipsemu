@@ -47,6 +47,7 @@ LDLIBFILES	+= -lfaerieplay-common -lbfd -liberty
 
 TESTSRCS=$(wildcard test-*.cc test-*.c)
 
+MAKE_INCLUDES=mips-shared.make config.make
 
 LIB = mips
 EXES = runmips
@@ -93,13 +94,19 @@ build: $(TARGETS)
 runmips: $(LIBOBJS) runmips.o
 	$(CXXLINK)
 
+make_incl_install_dir=$(DIST_ROOT)/make_include/mips
+# install the mips env.sh in the same relative directory as it is in the source tree
+mips_env_dir=$(make_incl_install_dir)/crossgcc/build/mipsel
+
 install: build
 #	strip $(EXES)
 	$(INSTALL) $(LIBFILE)	$(DIST_LIB)
 	$(INSTALL) $(MEMIMPLS_LIBS) $(DIST_LIB)
 	$(INSTALL) $(EXES)	$(DIST_BIN)
-
-
+	mkdir -p $(make_incl_install_dir)
+	$(INSTALL) $(MAKE_INCLUDES) $(make_incl_install_dir)/
+	mkdir -p $(mips_env_dir)
+	$(INSTALL) crossgcc/build/mipsel/env.sh $(mips_env_dir)/
 
 $(TESTEXES): $(LIBOBJS)
 
