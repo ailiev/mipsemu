@@ -13,6 +13,8 @@ include $(MY_MIPSDIR)/mips-shared.make
 
 # LIBOBJS = malloc.o 
 
+CXXFLAGS += -O2
+
 EXES = gcd multdiv rodata add-consts strlen strcat strcmp
 
 all: $(EXES)
