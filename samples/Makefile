@@ -15,9 +15,17 @@ include $(MY_MIPSDIR)/mips-shared.make
 
 CXXFLAGS += -O2
 
-EXES = gcd multdiv rodata add-consts strlen strcat strcmp
+SRCS = gcd.c multdiv.c rodata.c add-consts.c strlen.c strcat.c strcmp.c
 
-all: $(EXES)
+objs = $(subst .c,.o,$(SRCS))
+asms = $(subst .c,.s,$(SRCS))
+exe_files = $(subst .c,.exe,$(SRCS))
+disasms = $(subst .exe,.exe.s,$(exe_files))
+
+%.exe: %
+	cp $< $@
+
+all: $(exe_files) $(disasms) $(asms) $(objs)
 
 simple: simple.o $(LIBOBJS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LOADLIBES) $(LDLIBS)
